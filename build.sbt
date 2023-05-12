@@ -18,7 +18,6 @@ ThisBuild / tlSitePublishBranch := Some("main")
 
 // val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
-ThisBuild / crossScalaVersions := Seq(Scala3)
 ThisBuild / scalaVersion := Scala3 // the default Scala
 
 val Cats = "2.9.0"
@@ -34,7 +33,7 @@ val NewTypes = "0.2.3"
 
 lazy val root = tlCrossRootProject.aggregate(core, graphql)
 
-lazy val core = crossProject(JVMPlatform, JSPlatform)
+lazy val core = crossProject(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("core"))
   .settings(
@@ -49,7 +48,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val graphql = crossProject(JVMPlatform, JSPlatform)
+lazy val graphql = crossProject(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("graphql"))
   .settings(
