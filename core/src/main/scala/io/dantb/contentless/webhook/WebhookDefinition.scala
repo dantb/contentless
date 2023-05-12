@@ -14,21 +14,18 @@ final case class WebhookDefinition(
     transformation: Transformation
 )
 
-object WebhookDefinition {
+object WebhookDefinition:
   given eq: Eq[WebhookDefinition] = Versioned.eqUnversionedUniversalEquals
-}
 
-final case class WebhookHeader(key: String, value: Option[String], secret: Boolean) {
+final case class WebhookHeader(key: String, value: Option[String], secret: Boolean):
   override def toString: String =
     if (secret) s"{ $key = *** }"
     else s"{ $key = $value }"
 
   override def equals(obj: Any): Boolean =
-    obj match {
+    obj match
       case WebhookHeader(otherKey, _, true)           => key == otherKey
       case WebhookHeader(otherKey, otherValue, false) => key == otherKey && value == otherValue
       case _                                          => false
-    }
-}
 
 final case class WebhookTopic(event: WebhookEvent, entityType: EntityType)

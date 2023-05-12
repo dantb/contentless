@@ -21,7 +21,7 @@ import java.time.ZonedDateTime
 import edu.gemini.grackle.Ast._
 import io.circe._
 
-object core {
+object core:
 
   trait Entry[A]
 
@@ -36,17 +36,14 @@ object core {
   )
 
   sealed trait Reference[A]
-  object Reference {
+  object Reference:
     final case class Flat[A](sys: Sys) extends Reference[A]
     final case class Deep[A](sysId: String, a: A)
-  }
 
   final case class Params(skip: Int, limit: Int, locale: String, preview: Boolean)
 
-}
-
 // TODO: let the user specify a depth to go to for generating subqueries?
-object graphql {
+object graphql:
 
   import core._
 
@@ -85,5 +82,3 @@ object graphql {
   def getEntries[F[_], A: Entry: Decoder](params: Params): F[List[A]] = ???
 
   object internal {}
-
-}

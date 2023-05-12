@@ -14,37 +14,37 @@ import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.webhook.*
 
-object implicits extends dsl {
+object implicits extends dsl:
   implicit def contentfulEntryEncoder[A](using codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
     obj(
       "fields" -> codec.write(value.fields).asJson
     )
 
   given timestampsDecoder: Decoder[Timestamps] = c =>
-    for {
+    for
       createdAt        <- c.downField("createdAt").as[Option[ZonedDateTime]]
       updatedAt        <- c.downField("updatedAt").as[Option[ZonedDateTime]]
       publishedAt      <- c.downField("publishedAt").as[Option[ZonedDateTime]]
       firstPublishedAt <- c.downField("firstPublishedAt").as[Option[ZonedDateTime]]
-    } yield Timestamps(
+    yield Timestamps(
       createdAt = createdAt,
       updatedAt = updatedAt,
       publishedAt = publishedAt,
       firstPublishedAt = firstPublishedAt
     )
   given authorsDecoder: Decoder[Authors] = c =>
-    for {
+    for
       createdBy   <- c.downField("createdBy").as[Option[Reference]]
       updatedBy   <- c.downField("updatedBy").as[Option[Reference]]
       publishedBy <- c.downField("publishedBy").as[Option[Reference]]
-    } yield Authors(
+    yield Authors(
       createdBy = createdBy,
       updatedBy = updatedBy,
       publishedBy = publishedBy
     )
 
   implicit def contentfulEntryDecoder[A](using codec: EntryCodec[A]): Decoder[Entry[A]] = c =>
-    for {
+    for
       id <- c.downField("sys").get[Option[String]]("id")
       fields <- c
         .get[Map[String, Json]]("fields")
@@ -54,7 +54,7 @@ object implicits extends dsl {
       env        <- c.downField("sys").get[Option[Reference]]("environment")
       timestamps <- c.get[Timestamps]("sys")
       authors    <- c.get[Authors]("sys")
-    } yield Entry[A](
+    yield Entry[A](
       id = id,
       fields = fields,
       version = version,
@@ -91,11 +91,11 @@ object implicits extends dsl {
         .format(DateTimeFormatter.ISO_INSTANT)
     )
 
-  given zonedDateTimeDecoder: Decoder[ZonedDateTime] = Decoder.decodeZonedDateTime
-  def contentfulListDecoder[A: Decoder]: Decoder[List[A]]   = _.get[List[A]]("items")
-  given contentTypeIdEncoder: Encoder[ContentTypeId] = Encoder[String].contramap(_.asString)
-  given contentTypeIdDecoder: Decoder[ContentTypeId] = Decoder[String].map(ContentTypeId.apply)
-  given mimeTypeGroupEncoder: Encoder[MimeTypeGroup] = Encoder[String].contramap(_.typeName)
+  given zonedDateTimeDecoder: Decoder[ZonedDateTime]      = Decoder.decodeZonedDateTime
+  def contentfulListDecoder[A: Decoder]: Decoder[List[A]] = _.get[List[A]]("items")
+  given contentTypeIdEncoder: Encoder[ContentTypeId]      = Encoder[String].contramap(_.asString)
+  given contentTypeIdDecoder: Decoder[ContentTypeId]      = Decoder[String].map(ContentTypeId.apply)
+  given mimeTypeGroupEncoder: Encoder[MimeTypeGroup]      = Encoder[String].contramap(_.typeName)
   given mimeTypeGroupDecoder: Decoder[MimeTypeGroup] = Decoder[String].emap {
     case "archive"      => MimeTypeGroup.Archive.asRight
     case "attachment"   => MimeTypeGroup.Attachment.asRight
@@ -347,7 +347,7 @@ object implicits extends dsl {
   given methodDecoder: Decoder[Method] =
     Decoder[String].emap(s => Method.parse(s).toRight(s"Invalid webhook method $s"))
 
-  given transformationEncoder: Encoder[Transformation] = t => {
+  given transformationEncoder: Encoder[Transformation] = t =>
     def encodeOption[A: Encoder](key: String, opt: Option[A]): Iterable[(String, Json)] =
       opt.map(v => key -> v.asJson).toIterable
 
@@ -357,7 +357,6 @@ object implicits extends dsl {
         encodeOption("method", t.method) ++
         encodeOption("includeContentLength", t.includeContentLength)
     )
-  }
 
   given transformationDecoder: Decoder[Transformation] = c =>
     (
@@ -425,10 +424,9 @@ object implicits extends dsl {
       )
     case FieldType.Array(itemType, minLength, maxLength) =>
       val validations =
-        (minLength, maxLength) match {
+        (minLength, maxLength) match
           case (None, None) => List.empty[Validation]
           case _            => List[Validation](Validation.Size(minLength, maxLength, None))
-        }
       obj(
         "type"        -> "Array".asJson,
         "items"       -> itemType.asJson(fieldTypeEncoder),
@@ -482,7 +480,7 @@ object implicits extends dsl {
         ).mapN(FieldType.Array.apply)
     }
 
-  given fieldEncoder: Encoder[Field] = field => {
+  given fieldEncoder: Encoder[Field] = field =>
     val typeFields = field.fieldType.asJson
 
     obj(
@@ -494,7 +492,6 @@ object implicits extends dsl {
     )
       .deepMerge(typeFields)
       .mapObject(if (field.defaultValue.isEmpty) identity else _.add("defaultValue", field.defaultValue.asJson))
-  }
 
   given fieldDecoder: Decoder[Field] = c =>
     (
@@ -525,14 +522,13 @@ object implicits extends dsl {
 
   given webhookTopicDecoder: Decoder[WebhookTopic] =
     Decoder[String].emap { str =>
-      str.split('.') match {
+      str.split('.') match
         case Array(typeName, eventName) =>
           (
             WebhookEvent.fromString(eventName).toRight(s"Unknown event type: $eventName"),
             EntityType.fromString(typeName).toRight(s"Unknown entity type: $typeName")
           ).mapN(WebhookTopic.apply)
         case _ => s"Invalid webhook topic: $str".asLeft
-      }
     }
 
   given propertyPathEncoder: Encoder[PropertyPath] = Encoder[String].contramap(_.asString)
@@ -543,8 +539,7 @@ object implicits extends dsl {
   given referenceEncoder: Encoder[Reference] = ref =>
     obj("sys" -> obj("type" -> "Link".asJson, "linkType" -> "Entry".asJson, "id" -> ref.id.asJson))
 
-  given referenceDecoder: Decoder[Reference] = c =>
-    c.downField("sys").downField("id").as[String].map(Reference.apply)
+  given referenceDecoder: Decoder[Reference] = c => c.downField("sys").downField("id").as[String].map(Reference.apply)
 
   given locationEncoder: Encoder[Location] = location =>
     obj("lat" -> location.latitude.asJson, "lon" -> location.longitude.asJson)
@@ -585,7 +580,7 @@ object implicits extends dsl {
       )
   }
 
-  given webhookFilterDecoder: Decoder[WebhookFilter] = c => {
+  given webhookFilterDecoder: Decoder[WebhookFilter] = c =>
     val equals = c.downField("equals").success.map { eqCur =>
       (
         eqCur.downN(0).downField("doc").as[PropertyPath],
@@ -615,7 +610,6 @@ object implicits extends dsl {
 
     equals orElse in orElse regex orElse not getOrElse
       DecodingFailure(s"Failed to match a webhook filter on $c", Nil).asLeft
-  }
 
   given contentTypeEncoder: Encoder[ContentType] = ct =>
     obj(
@@ -626,14 +620,14 @@ object implicits extends dsl {
     )
 
   given contentTypeDecoder: Decoder[ContentType] = c =>
-    for {
+    for
       id           <- c.downField("sys").downField("id").as[ContentTypeId]
       name         <- c.downField("name").as[String]
       displayField <- c.downField("displayField").as[Option[String]]
       description  <- c.downField("description").as[Option[String]]
       fields       <- c.downField("fields").as[List[Field]]
       version      <- c.downField("sys").downField("version").as[Option[Int]]
-    } yield ContentType(
+    yield ContentType(
       id = id,
       name = name,
       displayField = displayField,
@@ -643,13 +637,13 @@ object implicits extends dsl {
     )
 
   given validationSizeDecoder: Decoder[Validation.Size] = c =>
-    for {
+    for
       min     <- c.downField("size").downField("min").as[Option[Int]]
       max     <- c.downField("size").downField("max").as[Option[Int]]
       message <- c.downField("message").as[Option[String]]
-    } yield Validation.Size(min, max, message)
+    yield Validation.Size(min, max, message)
 
-  given richTextNodesValidationDecoder: Decoder[Validation.RichTextNodes] = c => {
+  given richTextNodesValidationDecoder: Decoder[Validation.RichTextNodes] = c =>
     import Validation.*
     def parseNodeEntryValidation[A](
         key: String,
@@ -664,7 +658,7 @@ object implicits extends dsl {
         )
       }
 
-    for {
+    for
       assetHyperlinkSize <- c
         .downField("nodes")
         .downField("asset-hyperlink")
@@ -678,8 +672,7 @@ object implicits extends dsl {
       entryHyperlink <- parseNodeEntryValidation("entry-hyperlink", RichTextNodes.EntryHyperlink.apply)
       entryInline    <- parseNodeEntryValidation("embedded-entry-inline", RichTextNodes.EntryInline.apply)
       entryBlock     <- parseNodeEntryValidation("embedded-entry-block", RichTextNodes.EntryBlock.apply)
-    } yield Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
-  }
+    yield Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
 
   given validationDecoder: Decoder[Validation] = c =>
     c.downField("in").success.map(_.as[List[String]].map[Validation](Validation.ContainedIn.apply)) orElse
@@ -703,10 +696,10 @@ object implicits extends dsl {
     )
 
   given linkContentTypeDecoder: Decoder[Validation.LinkContentType] = c =>
-    for {
+    for
       types   <- c.downField("linkContentType").as[Set[String]]
       message <- c.downField("message").as[Option[String]]
-    } yield Validation.LinkContentType(types, message)
+    yield Validation.LinkContentType(types, message)
 
   implicit def validationEncoder[A <: Validation]: Encoder[A] = {
     case Validation.ContainedIn(allowedValues) =>
@@ -799,7 +792,7 @@ object implicits extends dsl {
       )
   }
 
-  given controlEnc: Encoder[FieldControl] = fc => {
+  given controlEnc: Encoder[FieldControl] = fc =>
     val maybeSettings: Option[Json] =
       if (fc.settings.nonEmpty)
         Some(fc.settings.map(setting => setting.name -> encodeSettingValue(setting)).toMap.asJson)
@@ -807,15 +800,14 @@ object implicits extends dsl {
 
     Json.fromFields(
       List(
-        "fieldId"                       -> fc.fieldId.asJson,
-        "widgetId"                      -> fc.control.id.asJson,
-        "widgetNamespace"               -> fc.control.namespace.asJson
+        "fieldId"         -> fc.fieldId.asJson,
+        "widgetId"        -> fc.control.id.asJson,
+        "widgetNamespace" -> fc.control.namespace.asJson
       ) ++ maybeSettings.map("settings" -> _)
     )
-  }
 
   def encodeSettingValue(setting: FieldControlSetting): Json =
-    setting match {
+    setting match
       case Rating.Stars(value)                       => value.asJson
       case DatePicker.Format(value)                  => value.asJson
       case LinksEditor.BulkEditing(value)            => value.asJson
@@ -826,12 +818,11 @@ object implicits extends dsl {
       case LinksEditor.ShowLinkEntityAction(value)   => value.asJson
       case LinksEditor.ShowCreateEntityAction(value) => value.asJson
       case setting: CustomSetting                    => setting.toJson
-    }
 
   given sidebarEnc: Encoder[SidebarWidget] = control =>
     obj("widgetId" -> control.id.asJson, "widgetNamespace" -> control.namespace.asJson)
 
-  given editorEnc: Encoder[Editor] = control => {
+  given editorEnc: Encoder[Editor] = control =>
     val disabled = if (control.disabled) Some("disabled" -> true.asJson) else None
     Json.fromFields(
       List(
@@ -839,9 +830,8 @@ object implicits extends dsl {
         "widgetNamespace" -> control.namespace.asJson
       ) ++ disabled // don't include if it's not disabled (from the API's current behaviour)
     )
-  }
 
-  given interfaceEnc: Encoder[EditorInterface] = interface => {
+  given interfaceEnc: Encoder[EditorInterface] = interface =>
     def encNonEmpty[A: Encoder](key: String, list: List[A]): Option[(String, Json)] =
       if (list.nonEmpty) Some(key -> list.asJson) else None
 
@@ -850,7 +840,6 @@ object implicits extends dsl {
         encNonEmpty("sidebar", interface.sidebarWidgets) ++
         encNonEmpty("controls", interface.controls.toList)
     )
-  }
 
   given datePickerClockTypeDec: Decoder[DatePicker.ClockType] = Decoder[String].emap(s =>
     DatePicker.ClockType.parse(s).toRight(s"Invalid ${DatePicker.ClockType.Name} field setting: $s")
@@ -860,7 +849,7 @@ object implicits extends dsl {
     Decoder[String].emap(s => DatePicker.Format.parse(s).toRight(s"Invalid ${DatePicker.Format.Name} field setting: $s"))
 
   given controlDec: Decoder[FieldControl] = c =>
-    for {
+    for
       fieldId   <- c.get[String]("fieldId")
       widgetId  <- c.get[String]("widgetId")
       namespace <- c.get[String]("widgetNamespace")
@@ -871,11 +860,11 @@ object implicits extends dsl {
         .get[Option[Map[String, Json]]]("settings")
         .flatMap(_.traverse(_.toList.traverse { case (k, json) => parseFieldControlSetting(k, json) }))
         .map(_.map(_.toSet))
-    } yield FieldControl(fieldId, control, maybeSettings.getOrElse(Set.empty))
+    yield FieldControl(fieldId, control, maybeSettings.getOrElse(Set.empty))
 
-  def parseFieldControlSetting(key: String, json: Json): Decoder.Result[FieldControlSetting] = {
+  def parseFieldControlSetting(key: String, json: Json): Decoder.Result[FieldControlSetting] =
     import FieldControlSetting.*
-    key match {
+    key match
       case Boolean.TrueLabel.Name                  => json.as[String].map(Boolean.TrueLabel.apply)
       case Boolean.FalseLabel.Name                 => json.as[String].map(Boolean.FalseLabel.apply)
       case Rating.Stars.Name                       => json.as[Int].map(Rating.Stars.apply)
@@ -886,41 +875,38 @@ object implicits extends dsl {
       case LinksEditor.ShowLinkEntityAction.Name   => json.as[Boolean].map(LinksEditor.ShowLinkEntityAction.apply)
       case LinksEditor.ShowCreateEntityAction.Name => json.as[Boolean].map(LinksEditor.ShowCreateEntityAction.apply)
       case name => Right(CustomSetting(name, json)) // assume any other setting is a custom setting.
-    }
-  }
 
   given sidebarDec: Decoder[SidebarWidget] = c =>
-    for {
+    for
       widgetId  <- c.get[String]("widgetId")
       namespace <- c.get[String]("widgetNamespace")
       sidebar <- SidebarWidget
         .parse(namespace, widgetId)
         .toRight(DecodingFailure(s"Invalid sidebar widget $widgetId for namespace $namespace", Nil))
-    } yield sidebar
+    yield sidebar
 
   given editorDec: Decoder[Editor] = c =>
-    for {
+    for
       widgetId  <- c.get[String]("widgetId")
       namespace <- c.get[String]("widgetNamespace")
       disabled  <- c.get[Option[Boolean]]("disabled")
       editor <- Editor
         .parse(namespace, widgetId, disabled.getOrElse(false))
         .toRight(DecodingFailure(s"Invalid editor widget $widgetId for namespace $namespace", Nil))
-    } yield editor
+    yield editor
 
-  given interfaceDec: Decoder[EditorInterface] = c => {
+  given interfaceDec: Decoder[EditorInterface] = c =>
     val editorsCur  = c.downField("editors")
     val sidebarCur  = c.downField("sidebar")
     val controlsCur = c.downField("controls")
-    for {
+    for
       editors  <- if (editorsCur.succeeded) editorsCur.as[Set[Editor]] else Right(Set.empty[Editor])
       sidebars <- if (sidebarCur.succeeded) sidebarCur.as[List[SidebarWidget]] else Right(Nil)
       controls <-
         if (controlsCur.succeeded)
           controlsCur.as[List[Json]].flatMap(_.flatTraverse(swallowFieldsWithoutWidget)).map(_.toSet)
         else Right(Set.empty[FieldControl])
-    } yield EditorInterface(editors, sidebars, controls)
-  }
+    yield EditorInterface(editors, sidebars, controls)
 
   /** Bit of a hack working around Contentful bug. Weird behaviour where only the fieldId is returned, no widget. This means
     * it is the default widget for the field type. If declared from code it will be explicitly set.
@@ -947,5 +933,3 @@ object implicits extends dsl {
       c.downField("sys").downField("contentType").downField("sys").downField("id").as[ContentTypeId],
       c.as[EditorInterface]
     ).mapN(VersionedEditorInterface.apply)
-
-}

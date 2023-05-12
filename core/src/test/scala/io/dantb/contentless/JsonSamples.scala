@@ -21,14 +21,13 @@ import io.circe.literal.*
 import io.circe.syntax.EncoderOps
 import io.dantb.contentless.JsonSamples.Optics.*
 
-object JsonSamples {
+object JsonSamples:
 
-  object Optics {
+  object Optics:
     def dropField(field: String): Json => Json   = j => j.asObject.map(_.remove(field).asJson).getOrElse(j)
     def dropSecret: Json => Json                 = dropField("secret")
     def addValue(value: String): Json => Json    = j => j.asObject.map(_.add("value", value.asJson).asJson).getOrElse(j)
     def addSecret(secret: Boolean): Json => Json = j => j.asObject.map(_.add("secret", secret.asJson).asJson).getOrElse(j)
-  }
 
   val webhookHeaderKeySecret: Json =
     json"""
@@ -188,5 +187,3 @@ object JsonSamples {
                     }
                 }
         """
-
-}

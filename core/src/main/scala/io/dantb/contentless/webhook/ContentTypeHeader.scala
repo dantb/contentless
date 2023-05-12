@@ -5,7 +5,7 @@ package io.dantb.contentless.webhook
   */
 sealed abstract case class ContentTypeHeader(key: String)
 
-object ContentTypeHeader {
+object ContentTypeHeader:
   object VendorDefault      extends ContentTypeHeader("application/vnd.contentful.management.v1+json")
   object VendorDefaultUtf8  extends ContentTypeHeader("application/vnd.contentful.management.v1+json; charset=utf-8")
   object Json               extends ContentTypeHeader("application/json")
@@ -13,7 +13,7 @@ object ContentTypeHeader {
   object UrlEncodedForm     extends ContentTypeHeader("application/x-www-form-urlencoded")
   object UrlEncodedFormUtf8 extends ContentTypeHeader("application/x-www-form-urlencoded; charset=utf-8")
 
-  def parse(raw: String): Option[ContentTypeHeader] = raw match {
+  def parse(raw: String): Option[ContentTypeHeader] = raw match
     case VendorDefault.key      => Some(VendorDefault)
     case VendorDefaultUtf8.key  => Some(VendorDefaultUtf8)
     case Json.key               => Some(Json)
@@ -21,5 +21,3 @@ object ContentTypeHeader {
     case UrlEncodedForm.key     => Some(UrlEncodedForm)
     case UrlEncodedFormUtf8.key => Some(UrlEncodedFormUtf8)
     case _                      => None
-  }
-}

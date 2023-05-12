@@ -4,13 +4,12 @@ import cats.{Eq, Show}
 import cats.syntax.all.*
 import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
 
-sealed trait Editor {
+sealed trait Editor:
   def id: String
   def namespace: String
   def disabled: Boolean
-}
 
-object Editor {
+object Editor:
   // Taken from: https://www.contentful.com/developers/_assets/apps/editor-interfaces/default-editors.3870e02a40.json
   val Default: Set[Editor] = Set(EntryEditor(disabled = false))
 
@@ -24,25 +23,20 @@ object Editor {
     a.id === b.id && a.namespace === b.namespace && a.disabled === b.disabled
   }
 
-  final case class Extension(id: String, disabled: Boolean = false) extends Editor {
+  final case class Extension(id: String, disabled: Boolean = false) extends Editor:
     override val namespace: String = Extension.Namespace
-  }
 
-  object Extension {
+  object Extension:
     val Namespace = "extension"
-  }
 
-  final case class App(id: String, disabled: Boolean = false) extends Editor {
+  final case class App(id: String, disabled: Boolean = false) extends Editor:
     override val namespace: String = App.Namespace
-  }
-  object App {
+  object App:
     val Namespace = "app"
-  }
 
-  sealed abstract class BuiltIn(val id: String) extends Editor {
+  sealed abstract class BuiltIn(val id: String) extends Editor:
     final override def namespace: String = BuiltIn.Namespace
-  }
-  object BuiltIn {
+  object BuiltIn:
     val Namespace = "editor-builtin"
 
     given showBuiltIn: Show[BuiltIn] = Show.show {
@@ -52,31 +46,23 @@ object Editor {
     }
 
     final case class EntryEditor(disabled: Boolean) extends BuiltIn(EntryEditor.Id)
-    object EntryEditor {
+    object EntryEditor:
       val Id: String = "default-editor"
-    }
     final case class ReferencesEditor(disabled: Boolean) extends BuiltIn("reference-tree")
-    object ReferencesEditor {
+    object ReferencesEditor:
       val Id: String = "reference-tree"
-    }
     final case class TagsEditor(disabled: Boolean) extends BuiltIn("tags-editor")
-    object TagsEditor {
+    object TagsEditor:
       val Id: Any = "tags-editor"
-    }
 
-    def parse(id: String, disabled: Boolean): Option[BuiltIn] = id match {
+    def parse(id: String, disabled: Boolean): Option[BuiltIn] = id match
       case EntryEditor.Id      => EntryEditor(disabled).some
       case ReferencesEditor.Id => ReferencesEditor(disabled).some
       case TagsEditor.Id       => TagsEditor(disabled).some
       case _                   => None
-    }
-  }
 
-  def parse(namespace: String, wid: String, disabled: Boolean): Option[Editor] = namespace match {
+  def parse(namespace: String, wid: String, disabled: Boolean): Option[Editor] = namespace match
     case BuiltIn.Namespace   => BuiltIn.parse(wid, disabled)
     case App.Namespace       => Some(App(wid))
     case Extension.Namespace => Some(Extension(wid))
     case _                   => None
-  }
-
-}

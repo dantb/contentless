@@ -12,6 +12,5 @@ final case class Transformation(
     body: Option[Json]
 )
 
-object Transformation {
+object Transformation:
   def empty: Transformation = Transformation(None, None, None, None)
-}

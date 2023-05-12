@@ -19,7 +19,7 @@ final case class FieldControl(
     settings: Set[FieldControlSetting]
 )
 
-object FieldControl {
+object FieldControl:
   given show: Show[FieldControl] = Show.show { fc =>
     show"FieldControl(fieldId = ${fc.fieldId}, control = ${fc.control}, settings = ${fc.settings})"
   }
@@ -27,14 +27,12 @@ object FieldControl {
   given eq: Eq[FieldControl] = Eq.instance { (a, b) =>
     a.fieldId === b.fieldId && a.control === b.control && eqSet[FieldControlSetting].eqv(a.settings, b.settings)
   }
-}
 
-sealed trait Control {
+sealed trait Control:
   def id: String
   def namespace: String
-}
 
-object Control {
+object Control:
   given show: Show[Control] = Show.show {
     case e: Extension => s"ControlExtension(id = ${e.id}, namespace = ${e.namespace})"
     case a: App       => s"ControlApp(id = ${a.id}, namespace = ${a.namespace}"
@@ -45,7 +43,7 @@ object Control {
     a.id === b.id && a.namespace === b.namespace
   }
 
-  final case class Extension(id: String) extends Control {
+  final case class Extension(id: String) extends Control:
     override val namespace: String                     = Extension.Namespace
     def boolean(settings: CustomSetting*): BoolControl = new BoolControl(this, settings.toSet) {}
     def longText(settings: CustomSetting*): LongTextControl =
@@ -67,13 +65,11 @@ object Control {
     def entry(settings: CustomSetting*): EntryControl = new EntryControl(this, settings.toSet) {}
     def entries(settings: CustomSetting*): EntriesControl =
       new EntriesControl(this, settings.toSet) {}
-  }
 
-  object Extension {
+  object Extension:
     val Namespace = "extension"
-  }
 
-  final case class App(id: String) extends Control {
+  final case class App(id: String) extends Control:
     override val namespace: String                     = App.Namespace
     def boolean(settings: CustomSetting*): BoolControl = new BoolControl(this, settings.toSet) {}
     def longText(settings: CustomSetting*): LongTextControl =
@@ -95,123 +91,98 @@ object Control {
     def entry(settings: CustomSetting*): EntryControl = new EntryControl(this, settings.toSet) {}
     def entries(settings: CustomSetting*): EntriesControl =
       new EntriesControl(this, settings.toSet) {}
-  }
 
-  object App {
+  object App:
     val Namespace = "app"
-  }
 
-  sealed abstract case class BuiltIn(id: String) extends Control {
+  sealed abstract case class BuiltIn(id: String) extends Control:
     final override def namespace: String = BuiltIn.Namespace
-  }
 
-  object BuiltIn {
+  object BuiltIn:
     given showBuiltIn: Show[BuiltIn] = Show.fromToString
 
     val Namespace: String = "builtin"
 
-    object AssetLinkEditor extends BuiltIn("assetLinkEditor") {
+    object AssetLinkEditor extends BuiltIn("assetLinkEditor"):
       def asset: AssetControl = new AssetControl(this) {}
-    }
 
     // TODO: support assets array in DSL, with and without editor interfaces
     object AssetLinksEditor   extends BuiltIn("assetLinksEditor")
     object AssetGalleryEditor extends BuiltIn("assetGalleryEditor")
 
-    object Boolean extends BuiltIn("boolean") {
+    object Boolean extends BuiltIn("boolean"):
       def boolean: BoolControl = new BoolControl(this) {}
-    }
 
-    object DatePicker extends BuiltIn("datePicker") {
+    object DatePicker extends BuiltIn("datePicker"):
       def dateTime: DateTimeControl = new DateTimeControl(this) {}
-    }
 
-    object EntryLinkEditor extends BuiltIn("entryLinkEditor") {
+    object EntryLinkEditor extends BuiltIn("entryLinkEditor"):
       def entry: EntryControl = new EntryControl(this) {}
-    }
 
-    object EntryLinksEditor extends BuiltIn("entryLinksEditor") {
+    object EntryLinksEditor extends BuiltIn("entryLinksEditor"):
       def entries: EntriesControl = new EntriesControl(this) {}
-    }
 
-    object EntryCardEditor extends BuiltIn("entryCardEditor") {
+    object EntryCardEditor extends BuiltIn("entryCardEditor"):
       def entry: EntryControl = new EntryControl(this) {}
-    }
 
-    object EntryCardsEditor extends BuiltIn("entryCardsEditor") {
+    object EntryCardsEditor extends BuiltIn("entryCardsEditor"):
       def entries: EntriesControl = new EntriesControl(this) {}
-    }
 
-    object NumberEditor extends BuiltIn("numberEditor") {
+    object NumberEditor extends BuiltIn("numberEditor"):
       def integer: IntControl = new IntControl(this) {}
       def number: NumControl  = new NumControl(this) {}
-    }
 
-    object Rating extends BuiltIn("rating") {
+    object Rating extends BuiltIn("rating"):
       def integer: IntControl = new IntControl(this) {}
       def number: NumControl  = new NumControl(this) {}
-    }
 
-    object LocationEditor extends BuiltIn("locationEditor") {
+    object LocationEditor extends BuiltIn("locationEditor"):
       def location: LocationControl = new LocationControl(this) {}
-    }
 
-    object ObjectEditor extends BuiltIn("objectEditor") {
+    object ObjectEditor extends BuiltIn("objectEditor"):
       def json: JsonControl = new JsonControl(this) {}
-    }
 
-    object UrlEditor extends BuiltIn("urlEditor") {
+    object UrlEditor extends BuiltIn("urlEditor"):
       def text: TextControl = new TextControl(this) {}
-    }
 
-    object SlugEditor extends BuiltIn("slugEditor") {
+    object SlugEditor extends BuiltIn("slugEditor"):
       def text: TextControl = new TextControl(this) {}
-    }
 
-    object ListInput extends BuiltIn("listInput") {
+    object ListInput extends BuiltIn("listInput"):
       def textList: TextListControl = new TextListControl(this) {}
-    }
 
-    object Checkbox extends BuiltIn("checkbox") {
+    object Checkbox extends BuiltIn("checkbox"):
       def textList: TextListControl = new TextListControl(this) {}
-    }
 
-    object TagEditor extends BuiltIn("tagEditor") {
+    object TagEditor extends BuiltIn("tagEditor"):
       def textList: TextListControl = new TextListControl(this) {}
-    }
 
-    object MultipleLine extends BuiltIn("multipleLine") {
+    object MultipleLine extends BuiltIn("multipleLine"):
       def longText: LongTextControl = new LongTextControl(this) {}
-    }
 
-    object Markdown extends BuiltIn("markdown") {
+    object Markdown extends BuiltIn("markdown"):
       def longText: LongTextControl = new LongTextControl(this) {}
-    }
 
-    object SingleLine extends BuiltIn("singleLine") {
+    object SingleLine extends BuiltIn("singleLine"):
       def text: TextControl         = new TextControl(this) {}
       def longText: LongTextControl = new LongTextControl(this) {}
-    }
 
-    object Dropdown extends BuiltIn("dropdown") {
+    object Dropdown extends BuiltIn("dropdown"):
       def text: TextControl         = new TextControl(this) {}
       def longText: LongTextControl = new LongTextControl(this) {}
       def integer: IntControl       = new IntControl(this) {}
       def number: NumControl        = new NumControl(this) {}
-    }
 
-    object Radio extends BuiltIn("radio") {
+    object Radio extends BuiltIn("radio"):
       def text: TextControl         = new TextControl(this) {}
       def longText: LongTextControl = new LongTextControl(this) {}
       def integer: IntControl       = new IntControl(this) {}
       def number: NumControl        = new NumControl(this) {}
-    }
 
-    object RichTextEditor extends BuiltIn("richTextEditor") {
+    object RichTextEditor extends BuiltIn("richTextEditor"):
       def richText: RichTextControl = new RichTextControl(this) {}
-    }
 
-    def parse(id: String): Option[BuiltIn] = id match {
+    def parse(id: String): Option[BuiltIn] = id match
       case AssetLinkEditor.id    => AssetLinkEditor.some
       case AssetLinksEditor.id   => AssetLinksEditor.some
       case AssetGalleryEditor.id => AssetGalleryEditor.some
@@ -237,15 +208,12 @@ object Control {
       case Radio.id              => Radio.some
       case RichTextEditor.id     => RichTextEditor.some
       case _                     => None
-    }
-  }
 
-  def parse(namespace: String, wid: String): Option[Control] = namespace match {
+  def parse(namespace: String, wid: String): Option[Control] = namespace match
     case BuiltIn.Namespace   => BuiltIn.parse(wid)
     case Extension.Namespace => Some(Extension(wid))
     case App.Namespace       => Some(App(wid))
     case _                   => None
-  }
 
   // There is a many-many relationship between controls and field types for which those controls are applicable.
   // It feels cleaner to represent this through composition rather than a diamond inheritance hierarchy.
@@ -257,7 +225,7 @@ object Control {
       trueLabel: Option[TrueLabel] = Some(TrueLabel("Yes")),
       falseLabel: Option[FalseLabel] = Some(FalseLabel("No")),
       helpText: Option[HelpText] = None
-  ) {
+  ):
     private def copy(
         trueLabel: Option[TrueLabel] = this.trueLabel,
         falseLabel: Option[FalseLabel] = this.falseLabel,
@@ -269,54 +237,48 @@ object Control {
     def withHelpText(helpText: String): BoolControl = copy(helpText = HelpText(helpText).some)
     def removeTrueLabel(): BoolControl              = copy(trueLabel = None)
     def removeFalseLabel(): BoolControl             = copy(falseLabel = None)
-  }
 
   sealed abstract case class LongTextControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): LongTextControl =
       new LongTextControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class TextControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): TextControl = new TextControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class IntControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       stars: Option[Stars] = None,
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withStars(stars: Int): IntControl = new IntControl(value, settings, Stars(stars).some) {}
     def withHelpText(helpText: String): IntControl =
       new IntControl(value, settings, stars, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class NumControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       stars: Option[Stars] = None,
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withStars(stars: Int): NumControl = new NumControl(value, settings, Stars(stars).some) {}
     def withHelpText(helpText: String): NumControl =
       new NumControl(value, settings, stars, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class JsonControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): JsonControl = new JsonControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class DateTimeControl(
       value: Control,
@@ -324,7 +286,7 @@ object Control {
       format: Option[Format] = Some(Format.Time),
       clockType: Option[ClockType] = Some(ClockType.TwentyFourHour),
       helpText: Option[HelpText] = None
-  ) {
+  ):
     private def copy(
         format: Option[Format] = this.format,
         clockType: Option[ClockType] = this.clockType,
@@ -336,34 +298,30 @@ object Control {
     def withHelpText(helpText: String): DateTimeControl  = copy(helpText = HelpText(helpText).some)
     def removeFormat(): DateTimeControl                  = copy(format = None)
     def removeClockType(): DateTimeControl               = copy(clockType = None)
-  }
 
   sealed abstract case class LocationControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): LocationControl =
       new LocationControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class RichTextControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): RichTextControl =
       new RichTextControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class TextListControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
       helpText: Option[HelpText] = None
-  ) {
+  ):
     def withHelpText(helpText: String): TextListControl =
       new TextListControl(value, settings, HelpText(helpText).some) {}
-  }
 
   sealed abstract case class AssetControl(
       value: Control,
@@ -371,7 +329,7 @@ object Control {
       showCreateEntity: Option[ShowCreateEntityAction] = Some(ShowCreateEntityAction(true)),
       showLinkEntity: Option[ShowLinkEntityAction] = Some(ShowLinkEntityAction(true)),
       helpText: Option[HelpText] = None
-  ) {
+  ):
     private def copy(
         showCreateEntity: Option[ShowCreateEntityAction] = this.showCreateEntity,
         showLinkEntity: Option[ShowLinkEntityAction] = this.showLinkEntity,
@@ -385,7 +343,6 @@ object Control {
     def withHelpText(helpText: String): AssetControl = copy(helpText = HelpText(helpText).some)
     def removeShowCreateEntity(): AssetControl       = copy(showCreateEntity = None)
     def removeShowLinkEntity(): AssetControl         = copy(showLinkEntity = None)
-  }
 
   sealed abstract case class EntryControl(
       value: Control,
@@ -393,7 +350,7 @@ object Control {
       showCreateEntity: Option[ShowCreateEntityAction] = Some(ShowCreateEntityAction(true)),
       showLinkEntity: Option[ShowLinkEntityAction] = Some(ShowLinkEntityAction(true)),
       helpText: Option[HelpText] = None
-  ) {
+  ):
     private def copy(
         showCreateEntity: Option[ShowCreateEntityAction] = this.showCreateEntity,
         showLinkEntity: Option[ShowLinkEntityAction] = this.showLinkEntity,
@@ -407,7 +364,6 @@ object Control {
     def withHelpText(helpText: String): EntryControl = copy(helpText = HelpText(helpText).some)
     def removeShowCreateEntity(): EntryControl       = copy(showCreateEntity = None)
     def removeShowLinkEntity(): EntryControl         = copy(showLinkEntity = None)
-  }
 
   sealed abstract case class EntriesControl(
       value: Control,
@@ -416,7 +372,7 @@ object Control {
       showLinkEntity: Option[ShowLinkEntityAction] = Some(ShowLinkEntityAction(true)),
       bulkEditing: Option[BulkEditing] = Some(BulkEditing(false)),
       helpText: Option[HelpText] = None
-  ) {
+  ):
     private def copy(
         showCreateEntity: Option[ShowCreateEntityAction] = this.showCreateEntity,
         showLinkEntity: Option[ShowLinkEntityAction] = this.showLinkEntity,
@@ -435,6 +391,3 @@ object Control {
     def removeShowCreateEntity(): EntriesControl       = copy(showCreateEntity = None)
     def removeShowLinkEntity(): EntriesControl         = copy(showLinkEntity = None)
     def removeBulkEditing(): EntriesControl            = copy(bulkEditing = None)
-  }
-
-}

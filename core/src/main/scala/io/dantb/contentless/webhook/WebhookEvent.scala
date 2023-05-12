@@ -3,7 +3,7 @@ import cats.syntax.all.*
 
 sealed abstract class WebhookEvent(val eventName: String)
 
-object WebhookEvent {
+object WebhookEvent:
   case object Publish   extends WebhookEvent("publish")
   case object Unpublish extends WebhookEvent("unpublish")
   case object Unarchive extends WebhookEvent("unarchive")
@@ -14,7 +14,7 @@ object WebhookEvent {
   case object Any       extends WebhookEvent("*")
 
   def fromString(str: String): Option[WebhookEvent] =
-    str match {
+    str match
       case "publish"   => WebhookEvent.Publish.some
       case "unpublish" => WebhookEvent.Unpublish.some
       case "unarchive" => WebhookEvent.Unarchive.some
@@ -24,5 +24,3 @@ object WebhookEvent {
       case "delete"    => WebhookEvent.Delete.some
       case "*"         => WebhookEvent.Any.some
       case _           => none
-    }
-}

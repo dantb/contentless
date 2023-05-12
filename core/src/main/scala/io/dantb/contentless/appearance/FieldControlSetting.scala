@@ -7,7 +7,7 @@ import io.circe.Json
 // TODO test invalid combinations to see how API responds
 sealed abstract class FieldControlSetting(val name: String)
 
-object FieldControlSetting {
+object FieldControlSetting:
   given show: Show[FieldControlSetting] = Show.show {
     case CustomSetting(name, json) => show"CustomSetting(name = $name, json = $json)"
     case other                     => other.toString
@@ -20,27 +20,22 @@ object FieldControlSetting {
 
   final case class CustomSetting(theName: String, toJson: Json) extends FieldControlSetting(theName)
 
-  object Boolean {
+  object Boolean:
     final case class TrueLabel(value: String) extends FieldControlSetting(TrueLabel.Name)
-    object TrueLabel {
+    object TrueLabel:
       val Name: String = "trueLabel"
-    }
     final case class FalseLabel(value: String) extends FieldControlSetting(FalseLabel.Name)
-    object FalseLabel {
+    object FalseLabel:
       val Name: String = "falseLabel"
-    }
-  }
 
-  object Rating {
+  object Rating:
     final case class Stars(value: Int) extends FieldControlSetting(Stars.Name)
-    object Stars {
+    object Stars:
       val Name: String = "stars"
-    }
-  }
 
-  object DatePicker {
+  object DatePicker:
     sealed abstract case class Format(value: String) extends FieldControlSetting(Format.Name)
-    object Format {
+    object Format:
       val Name: String = "format"
 
       object DateOnly extends Format("dateonly")
@@ -48,48 +43,36 @@ object FieldControlSetting {
       object TimeZ    extends Format("timeZ")
 
       def parse(value: String): Option[Format] =
-        value match {
+        value match
           case DateOnly.value => DateOnly.some
           case Time.value     => Time.some
           case TimeZ.value    => TimeZ.some
           case _              => none
-        }
-    }
 
     sealed abstract case class ClockType(value: String) extends FieldControlSetting(ClockType.Name)
-    object ClockType {
+    object ClockType:
       val Name: String = "ampm"
 
       object TwelveHour     extends ClockType("12")
       object TwentyFourHour extends ClockType("24")
 
       def parse(value: String): Option[ClockType] =
-        value match {
+        value match
           case TwelveHour.value     => TwelveHour.some
           case TwentyFourHour.value => TwentyFourHour.some
           case _                    => none
-        }
-    }
-  }
 
   final case class HelpText(value: String) extends FieldControlSetting(HelpText.Name)
-  object HelpText {
+  object HelpText:
     val Name: String = "helpText"
-  }
 
-  object LinksEditor {
+  object LinksEditor:
     final case class BulkEditing(value: Boolean) extends FieldControlSetting(BulkEditing.Name)
-    object BulkEditing {
+    object BulkEditing:
       val Name: String = "bulkEditing"
-    }
     final case class ShowLinkEntityAction(value: Boolean) extends FieldControlSetting(ShowLinkEntityAction.Name)
-    object ShowLinkEntityAction {
+    object ShowLinkEntityAction:
       val Name: String = "showLinkEntityAction"
-    }
     final case class ShowCreateEntityAction(value: Boolean) extends FieldControlSetting(ShowCreateEntityAction.Name)
-    object ShowCreateEntityAction {
+    object ShowCreateEntityAction:
       val Name: String = "showCreateEntityAction"
-    }
-  }
-
-}

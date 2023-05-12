@@ -17,7 +17,8 @@ sealed abstract case class PrettyEntryCodec[A](
     extension: Option[Editor.Extension] = None,
     app: Option[Editor.App] = None,
     sidebarWidgets: Option[List[SidebarWidget]] = None
-) { self =>
+):
+  self =>
   val editorInterface: EditorInterface = EditorInterface(
     extension // Use extension or app if present, disabling default editor.
       .map[Set[Editor]](e => Set(e, EntryEditor(disabled = true)))
@@ -50,16 +51,15 @@ sealed abstract case class PrettyEntryCodec[A](
 
   def withSidebar(widgets: List[SidebarWidget]): PrettyEntryCodec[A] =
     new PrettyEntryCodec(entryCodec, controls, extension, app, Some(widgets)) {}
-}
 
-object PrettyEntryCodec {
+object PrettyEntryCodec:
 
   def apply[A](using codec: PrettyEntryCodec[A]): PrettyEntryCodec[A] = codec
 
   def unit: PrettyEntryCodec[Unit] = new PrettyEntryCodec[Unit](EntryCodec.unit, Set.empty) {}
 
   implicit def invariantMonoidal: InvariantMonoidal[PrettyEntryCodec] =
-    new InvariantMonoidal[PrettyEntryCodec] {
+    new InvariantMonoidal[PrettyEntryCodec]:
       override def unit: PrettyEntryCodec[Unit] = PrettyEntryCodec.unit
       override def product[A, B](
           fa: PrettyEntryCodec[A],
@@ -68,10 +68,8 @@ object PrettyEntryCodec {
         fa.product(fb)
       override def imap[A, B](fa: PrettyEntryCodec[A])(f: A => B)(g: B => A): PrettyEntryCodec[B] =
         fa.imap(f)(g)
-    }
-}
 
-sealed trait PrettyFieldCodec[A] {
+sealed trait PrettyFieldCodec[A]:
   def required: PrettyEntryCodec[A] =
     new PrettyEntryCodec(fieldCodec.required, Set(FieldControl(fieldCodec.fieldId, control, settings))) {}
 
@@ -81,10 +79,9 @@ sealed trait PrettyFieldCodec[A] {
   protected def control: Control
   protected def fieldCodec: FieldCodec[A]
   protected def settings: Set[FieldControlSetting]
-}
 
-private[contentless] object PrettyFieldCodec {
-  trait PrettyDsl extends Dsl {
+private[contentless] object PrettyFieldCodec:
+  trait PrettyDsl extends Dsl:
     def prettyLongText(
         fieldId: String,
         fieldName: String,
@@ -164,17 +161,13 @@ private[contentless] object PrettyFieldCodec {
     /** Lift an abitrary entry codec into a pretty context. Useful for when you want to combine a shared entry codec into a
       * pretty entry codec.
       */
-    implicit final class PrettyOps[A](codec: EntryCodec[A]) {
+    implicit final class PrettyOps[A](codec: EntryCodec[A]):
       def withBuiltInAppearances = new PrettyEntryCodec[A](codec, Set.empty, None, None) {}
-    }
-  }
-
-}
 
 sealed abstract case class PrettyBoolField(
     fieldCodec: FieldCodec[Boolean],
     boolControl: BoolControl = Control.BuiltIn.Boolean.boolean
-) extends PrettyFieldCodec[Boolean] {
+) extends PrettyFieldCodec[Boolean]:
 
   override val control: Control = boolControl.value
 
@@ -188,12 +181,11 @@ sealed abstract case class PrettyBoolField(
   def disabled: PrettyBoolField                    = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     boolControl.trueLabel.toSet ++ boolControl.falseLabel.toSet ++ boolControl.settings ++ boolControl.helpText.toSet
-}
 
 sealed abstract case class PrettyLongTextField(
     fieldCodec: FieldCodec[String],
     textControl: LongTextControl = Control.BuiltIn.Markdown.longText
-) extends PrettyFieldCodec[String] {
+) extends PrettyFieldCodec[String]:
 
   override val control: Control = textControl.value
 
@@ -206,12 +198,11 @@ sealed abstract case class PrettyLongTextField(
   def withControl(c: LongTextControl): PrettyLongTextField = this.copy(textControl = c)
   def disabled: PrettyLongTextField                        = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]                   = textControl.settings ++ textControl.helpText.toSet
-}
 
 sealed abstract case class PrettyTextField(
     fieldCodec: FieldCodec[String],
     textControl: TextControl = Control.BuiltIn.SingleLine.text
-) extends PrettyFieldCodec[String] {
+) extends PrettyFieldCodec[String]:
 
   override val control: Control = textControl.value
 
@@ -224,12 +215,11 @@ sealed abstract case class PrettyTextField(
   def withControl(c: TextControl): PrettyTextField = this.copy(textControl = c)
   def disabled: PrettyTextField                    = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]           = textControl.settings ++ textControl.helpText.toSet
-}
 
 sealed abstract case class PrettyIntField(
     fieldCodec: FieldCodec[Int],
     intControl: IntControl = Control.BuiltIn.NumberEditor.integer
-) extends PrettyFieldCodec[Int] {
+) extends PrettyFieldCodec[Int]:
 
   override val control: Control = intControl.value
 
@@ -243,12 +233,11 @@ sealed abstract case class PrettyIntField(
   def disabled: PrettyIntField                   = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     intControl.stars.toSet ++ intControl.settings ++ intControl.helpText.toSet
-}
 
 sealed abstract case class PrettyNumField(
     fieldCodec: FieldCodec[Double],
     numControl: NumControl = Control.BuiltIn.NumberEditor.number
-) extends PrettyFieldCodec[Double] {
+) extends PrettyFieldCodec[Double]:
 
   override val control: Control = numControl.value
 
@@ -262,12 +251,11 @@ sealed abstract case class PrettyNumField(
   def disabled: PrettyNumField                   = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     numControl.stars.toSet[FieldControlSetting] ++ numControl.settings ++ numControl.helpText.toSet
-}
 
 sealed abstract case class PrettyJsonField[A](
     fieldCodec: FieldCodec[A],
     jsonControl: JsonControl = Control.BuiltIn.ObjectEditor.json
-) extends PrettyFieldCodec[A] {
+) extends PrettyFieldCodec[A]:
 
   override val control: Control = jsonControl.value
 
@@ -280,12 +268,11 @@ sealed abstract case class PrettyJsonField[A](
   def withControl(c: JsonControl): PrettyJsonField[A] = this.copy(jsonControl = c)
   def disabled: PrettyJsonField[A]                    = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]              = jsonControl.settings ++ jsonControl.helpText.toSet
-}
 
 sealed abstract case class PrettyDateTimeField[A](
     fieldCodec: FieldCodec[A],
     dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
-) extends PrettyFieldCodec[A] {
+) extends PrettyFieldCodec[A]:
 
   override val control: Control = dateTimeControl.value
 
@@ -301,12 +288,11 @@ sealed abstract case class PrettyDateTimeField[A](
     dateTimeControl.format.toSet ++ dateTimeControl.clockType.toSet ++ dateTimeControl.settings ++ dateTimeControl.helpText.toSet
 
   def zoned = copy(dateTimeControl = dateTimeControl.withFormat(FieldControlSetting.DatePicker.Format.TimeZ))
-}
 
 sealed abstract case class PrettyLocationField(
     fieldCodec: FieldCodec[Location],
     locControl: LocationControl = Control.BuiltIn.LocationEditor.location
-) extends PrettyFieldCodec[Location] {
+) extends PrettyFieldCodec[Location]:
 
   override val control: Control = locControl.value
 
@@ -319,12 +305,11 @@ sealed abstract case class PrettyLocationField(
   def withControl(c: LocationControl): PrettyLocationField = this.copy(locControl = c)
   def disabled: PrettyLocationField                        = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]                   = locControl.settings ++ locControl.helpText.toSet
-}
 
 sealed abstract case class PrettyRichTextField(
     fieldCodec: FieldCodec[Node],
     richTextControl: RichTextControl = Control.BuiltIn.RichTextEditor.richText
-) extends PrettyFieldCodec[Node] {
+) extends PrettyFieldCodec[Node]:
 
   override val control: Control = richTextControl.value
 
@@ -337,12 +322,11 @@ sealed abstract case class PrettyRichTextField(
   def withControl(c: RichTextControl): PrettyRichTextField = this.copy(richTextControl = c)
   def disabled: PrettyRichTextField                        = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]                   = richTextControl.settings ++ richTextControl.helpText.toSet
-}
 
 sealed abstract case class PrettyTextListField(
     fieldCodec: FieldCodec[List[String]],
     textList: TextListControl = Control.BuiltIn.TagEditor.textList
-) extends PrettyFieldCodec[List[String]] {
+) extends PrettyFieldCodec[List[String]]:
 
   override val control: Control = textList.value
 
@@ -355,12 +339,11 @@ sealed abstract case class PrettyTextListField(
   def withControl(c: TextListControl): PrettyTextListField = this.copy(textList = c)
   def disabled: PrettyTextListField                        = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting]                   = textList.settings ++ textList.helpText.toSet
-}
 
 sealed abstract case class PrettyAssetField(
     fieldCodec: FieldCodec[Media],
     assetControl: AssetControl = Control.BuiltIn.AssetLinkEditor.asset
-) extends PrettyFieldCodec[Media] {
+) extends PrettyFieldCodec[Media]:
 
   override val control: Control = assetControl.value
 
@@ -373,12 +356,11 @@ sealed abstract case class PrettyAssetField(
   def disabled: PrettyAssetField                     = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     assetControl.showCreateEntity.toSet ++ assetControl.showLinkEntity.toSet ++ assetControl.settings ++ assetControl.helpText.toSet
-}
 
 sealed abstract case class PrettyEntryField(
     fieldCodec: FieldCodec[Reference],
     entryControl: EntryControl = Control.BuiltIn.EntryLinkEditor.entry
-) extends PrettyFieldCodec[Reference] {
+) extends PrettyFieldCodec[Reference]:
 
   override val control: Control = entryControl.value
 
@@ -391,12 +373,11 @@ sealed abstract case class PrettyEntryField(
   def disabled: PrettyEntryField                     = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     entryControl.showCreateEntity.toSet ++ entryControl.showLinkEntity.toSet ++ entryControl.settings ++ entryControl.helpText.toList
-}
 
 sealed abstract case class PrettyEntriesField(
     fieldCodec: FieldCodec[List[Reference]],
     entriesControl: EntriesControl = Control.BuiltIn.EntryLinksEditor.entries
-) extends PrettyFieldCodec[List[Reference]] {
+) extends PrettyFieldCodec[List[Reference]]:
 
   override val control: Control = entriesControl.value
 
@@ -409,4 +390,3 @@ sealed abstract case class PrettyEntriesField(
   def disabled: PrettyEntriesField                       = this.copy(fieldCodec = fieldCodec.disabled)
   def settings: Set[FieldControlSetting] =
     entriesControl.showCreateEntity.toSet ++ entriesControl.showLinkEntity.toSet ++ entriesControl.bulkEditing.toSet ++ entriesControl.settings ++ entriesControl.helpText.toSet
-}

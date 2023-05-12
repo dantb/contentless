@@ -13,7 +13,7 @@ final case class EditorInterface(
     controls: Set[FieldControl]
 )
 
-object EditorInterface {
+object EditorInterface:
   given show: Show[EditorInterface] = Show.show { ei =>
     show"EditorInterface(editors = ${ei.editors}, sidebarWidgets = ${ei.sidebarWidgets}, controls = ${ei.controls})"
   }
@@ -26,12 +26,10 @@ object EditorInterface {
 
   def empty: EditorInterface = EditorInterface(Set.empty, Nil, Set.empty)
 
-  given monoid: Monoid[EditorInterface] = new Monoid[EditorInterface] {
+  given monoid: Monoid[EditorInterface] = new Monoid[EditorInterface]:
     override def empty: EditorInterface = EditorInterface.empty
     override def combine(x: EditorInterface, y: EditorInterface): EditorInterface =
       EditorInterface(x.editors ++ y.editors, x.sidebarWidgets ++ y.sidebarWidgets, x.controls ++ y.controls)
-  }
-}
 
 final case class VersionedEditorInterface(
     version: Int,
@@ -39,7 +37,7 @@ final case class VersionedEditorInterface(
     editorInterface: EditorInterface
 )
 
-object VersionedEditorInterface {
+object VersionedEditorInterface:
   given show: Show[VersionedEditorInterface] = Show.show { vei =>
     show"VersionedEditorInterface(version = ${vei.version}, contentType = ${vei.contentTypeId.asString}, editorInterface = ${vei.editorInterface})"
   }
@@ -47,4 +45,3 @@ object VersionedEditorInterface {
   given eq: Eq[VersionedEditorInterface] = Eq.instance { (a, b) =>
     a.version === b.version && a.contentTypeId === b.contentTypeId && a.editorInterface === b.editorInterface
   }
-}

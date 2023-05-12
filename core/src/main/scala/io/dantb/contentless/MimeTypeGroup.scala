@@ -2,7 +2,7 @@ package io.dantb.contentless
 
 sealed abstract class MimeTypeGroup(val typeName: String)
 
-object MimeTypeGroup {
+object MimeTypeGroup:
   case object Archive      extends MimeTypeGroup("archive")
   case object Attachment   extends MimeTypeGroup("attachment")
   case object Audio        extends MimeTypeGroup("audio")
@@ -15,4 +15,3 @@ object MimeTypeGroup {
   case object Richtext     extends MimeTypeGroup("richtext")
   case object Spreadsheet  extends MimeTypeGroup("spreadsheet")
   case object Video        extends MimeTypeGroup("video")
-}

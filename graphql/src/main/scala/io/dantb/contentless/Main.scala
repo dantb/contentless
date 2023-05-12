@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2023 Typelevel
  *
@@ -20,7 +19,5 @@ package io.dantb.contentless
 import cats.effect.{IO, IOApp}
 
 object Main extends IOApp.Simple:
-  def run: IO[Unit] = {
+  def run: IO[Unit] =
     IO.println("Hello sbt-typelevel!")
-  }
-

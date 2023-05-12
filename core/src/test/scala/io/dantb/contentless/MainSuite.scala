@@ -50,7 +50,7 @@ final case class PrettyPerson(
     bestFriend: Option[Reference]
 )
 
-object PrettyPerson {
+object PrettyPerson:
   val NameControl: Control.TextControl = Control.BuiltIn.UrlEditor.text.withHelpText("Enter your name")
   val FamilyControl: Control.EntriesControl =
     Control.BuiltIn.EntryCardsEditor.entries.withShowLinkEntity(false).withHelpText("Family tree")
@@ -100,7 +100,6 @@ object PrettyPerson {
       )
     ).withEditorApp(PersonEditorApp)
       .withSidebar(PersonSidebar)
-}
 
 final case class PrettyAllMimeTypeGroupMedia(
     archiveMedia: Media,
@@ -117,7 +116,7 @@ final case class PrettyAllMimeTypeGroupMedia(
     videoMedia: Media,
     multiMedia: Media
 )
-object PrettyAllMimeTypeGroupMedia {
+object PrettyAllMimeTypeGroupMedia:
   given codec: PrettyEntryCodec[PrettyAllMimeTypeGroupMedia] = (
     prettyMedia("archiveMedia", "Archive Media", Set(MimeTypeGroup.Archive)).required,
     prettyMedia("attachmentMedia", "Attachment Media", Set(MimeTypeGroup.Attachment)).required,
@@ -153,9 +152,8 @@ object PrettyAllMimeTypeGroupMedia {
       x.multiMedia
     )
   )
-}
 
-class PrettyEntryCodecSpec extends munit.FunSuite {
+class PrettyEntryCodecSpec extends munit.FunSuite:
   test("correctly encode/decode an entry with editor interfaces") {
     val expectedSchema: List[Field] =
       List(
@@ -401,4 +399,3 @@ class PrettyEntryCodecSpec extends munit.FunSuite {
     val codec = EntryCodec.unit
     assertEquals(codec.withBuiltInAppearances.entryCodec, codec)
   }
-}

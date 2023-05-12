@@ -5,7 +5,7 @@ import cats.syntax.all.*
 
 sealed trait FieldType
 
-object FieldType {
+object FieldType:
 
   given eq: Eq[FieldType] = Eq.instance {
     case (a: Text, b: Text)         => a.longText === b.longText && a.validations === b.validations
@@ -28,4 +28,3 @@ object FieldType {
   case object Json                                                                            extends FieldType
   case object DateTime                                                                        extends FieldType
   case object Location                                                                        extends FieldType
-}

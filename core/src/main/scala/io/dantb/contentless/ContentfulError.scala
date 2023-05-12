@@ -4,7 +4,7 @@ import cats.Show
 
 sealed trait ContentfulError extends Product with Serializable
 
-object ContentfulError {
+object ContentfulError:
   final case class Conflict(message: String)                      extends ContentfulError
   final case class DecodeError(reason: String)                    extends ContentfulError
   final case class FileAlreadyProcessed(message: String)          extends ContentfulError
@@ -22,4 +22,3 @@ object ContentfulError {
     case AssetPublishFailed(s)       => s"ContentfulError (AssetPublishFailed): $s"
     case PublishFailed(s)            => s"ContentfulError (PublishFailed): $s"
   }
-}

@@ -10,7 +10,8 @@ import io.dantb.contentless.RichText.Node
 import io.dantb.contentless.appearance.PrettyEntryCodec
 import io.dantb.contentless.circe.implicits.given
 
-sealed trait EntryCodec[A] { self =>
+sealed trait EntryCodec[A]:
+  self =>
   def schema: List[Field]
   def read(input: Map[String, Json]): Either[String, A]
   def write(value: A): Map[String, Json]
@@ -19,41 +20,35 @@ sealed trait EntryCodec[A] { self =>
     eimap(f(_).asRight)(g)
 
   final def eimap[B](f: A => Either[String, B])(g: B => A): EntryCodec[B] =
-    new EntryCodec[B] {
+    new EntryCodec[B]:
       override def read(input: Map[String, Json]): Either[String, B] = self.read(input).flatMap(f)
       override def write(value: B): Map[String, Json]                = self.write(g(value))
       override val schema: List[Field]                               = self.schema
-    }
 
   final def product[B](other: EntryCodec[B]): EntryCodec[(A, B)] =
-    new EntryCodec[(A, B)] {
+    new EntryCodec[(A, B)]:
       override def read(input: Map[String, Json]): Either[String, (A, B)] = self.read(input).product(other.read(input))
       override def write(value: (A, B)): Map[String, Json]                = self.write(value._1) ++ other.write(value._2)
       override val schema: List[Field]                                    = self.schema ++ other.schema
-    }
-}
 
-object EntryCodec {
+object EntryCodec:
   def apply[A](using codec: EntryCodec[A]): EntryCodec[A] = codec
 
   def unit: EntryCodec[Unit] =
-    new EntryCodec[Unit] {
+    new EntryCodec[Unit]:
       override def read(input: Map[String, Json]): Either[String, Unit] = Right(())
       override def write(value: Unit): Map[String, Json]                = Map.empty
       override val schema: List[Field]                                  = Nil
-    }
 
   implicit def invariantMonoidal: InvariantMonoidal[EntryCodec] =
-    new InvariantMonoidal[EntryCodec] {
+    new InvariantMonoidal[EntryCodec]:
       override def unit: EntryCodec[Unit] = EntryCodec.unit
       override def product[A, B](fa: EntryCodec[A], fb: EntryCodec[B]): EntryCodec[(A, B)] =
         fa.product(fb)
       override def imap[A, B](fa: EntryCodec[A])(f: A => B)(g: B => A): EntryCodec[B] = fa.imap(f)(g)
-    }
 
   implicit def fromPrettyEntryCodec[A](using pretty: PrettyEntryCodec[A]): EntryCodec[A] =
     pretty.entryCodec
-}
 
 final case class FieldCodec[A] private (
     fieldId: String,
@@ -62,9 +57,9 @@ final case class FieldCodec[A] private (
     locale: Locale,
     isDisabled: Boolean,
     defaultValue: Option[A]
-)(using encoder: Encoder[A], decoder: Decoder[A]) {
+)(using encoder: Encoder[A], decoder: Decoder[A]):
   def required: EntryCodec[A] =
-    new EntryCodec[A] {
+    new EntryCodec[A]:
       override def read(fields: Map[String, Json]): Either[String, A] =
         fields
           .get(fieldId)
@@ -73,10 +68,9 @@ final case class FieldCodec[A] private (
           .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
           .flatMap(_.as[A].leftMap(_.toString()))
           .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
-      override def write(value: A): Map[String, Json] = {
+      override def write(value: A): Map[String, Json] =
         val localized = Map(locale.code -> value.asJson).asJson
         Map(fieldId -> localized)
-      }
       override def schema: List[Field] =
         List(
           Field(
@@ -88,10 +82,9 @@ final case class FieldCodec[A] private (
             defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
           )
         )
-    }
 
   def optional: EntryCodec[Option[A]] =
-    new EntryCodec[Option[A]] {
+    new EntryCodec[Option[A]]:
       override def read(fields: Map[String, Json]): Either[String, Option[A]] =
         fields
           .get(fieldId)
@@ -104,12 +97,11 @@ final case class FieldCodec[A] private (
           .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
 
       override def write(option: Option[A]): Map[String, Json] =
-        option match {
+        option match
           case Some(value) =>
             val localized = Map(locale.code -> value.asJson).asJson
             Map(fieldId -> localized)
           case None => Map.empty
-        }
 
       override def schema: List[Field] =
         List(
@@ -122,13 +114,11 @@ final case class FieldCodec[A] private (
             defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
           )
         )
-    }
 
   def withLocale(newLocale: Locale): FieldCodec[A] = this.copy(locale = newLocale)
   def disabled: FieldCodec[A]                      = this.copy(isDisabled = true)
-}
 
-private[contentless] object FieldCodec {
+private[contentless] object FieldCodec:
   val defaultLocale: Locale = Locale.enGB
 
   def apply[A: Encoder: Decoder](
@@ -138,7 +128,7 @@ private[contentless] object FieldCodec {
       defaultValue: Option[A]
   ): FieldCodec[A] = FieldCodec(fieldId, fieldType, fieldName, defaultLocale, isDisabled = false, defaultValue)
 
-  trait Dsl {
+  trait Dsl:
     def text(
         fieldId: String,
         fieldName: String,
@@ -223,5 +213,3 @@ private[contentless] object FieldCodec {
         defaultValue: Option[ZonedDateTime] = None
     ): FieldCodec[ZonedDateTime] =
       FieldCodec(fieldId, FieldType.DateTime, fieldName, defaultValue)
-  }
-}
