@@ -13,7 +13,7 @@ object ContentfulError {
   final case class AssetPublishFailed(message: String)            extends ContentfulError
   final case class PublishFailed(message: String)                 extends ContentfulError
 
-  implicit val showInstance: Show[ContentfulError] = {
+  given showInstance: Show[ContentfulError] = {
     case Conflict(s)                 => s"ContentfulError (Conflict): $s"
     case DecodeError(s)              => s"ContentfulError (DecodeError): $s"
     case FileAlreadyProcessed(s)     => s"ContentfulError (FileAlreadyProcessed): $s"

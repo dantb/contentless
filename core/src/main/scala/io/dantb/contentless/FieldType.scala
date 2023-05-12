@@ -7,7 +7,7 @@ sealed trait FieldType
 
 object FieldType {
 
-  implicit val eq: Eq[FieldType] = Eq.instance {
+  given eq: Eq[FieldType] = Eq.instance {
     case (a: Text, b: Text)         => a.longText === b.longText && a.validations === b.validations
     case (a: RichText, b: RichText) => a.validations === b.validations
     case (a: Array, b: Array)       =>

@@ -14,11 +14,11 @@ final case class EditorInterface(
 )
 
 object EditorInterface {
-  implicit val show: Show[EditorInterface] = Show.show { ei =>
+  given show: Show[EditorInterface] = Show.show { ei =>
     show"EditorInterface(editors = ${ei.editors}, sidebarWidgets = ${ei.sidebarWidgets}, controls = ${ei.controls})"
   }
 
-  implicit val eq: Eq[EditorInterface] = Eq.instance { (a, b) =>
+  given eq: Eq[EditorInterface] = Eq.instance { (a, b) =>
     eqSet[Editor].eqv(a.editors, b.editors) &&
     a.sidebarWidgets === b.sidebarWidgets &&
     eqSet[FieldControl].eqv(a.controls, b.controls)
@@ -26,7 +26,7 @@ object EditorInterface {
 
   def empty: EditorInterface = EditorInterface(Set.empty, Nil, Set.empty)
 
-  implicit val monoid: Monoid[EditorInterface] = new Monoid[EditorInterface] {
+  given monoid: Monoid[EditorInterface] = new Monoid[EditorInterface] {
     override def empty: EditorInterface = EditorInterface.empty
     override def combine(x: EditorInterface, y: EditorInterface): EditorInterface =
       EditorInterface(x.editors ++ y.editors, x.sidebarWidgets ++ y.sidebarWidgets, x.controls ++ y.controls)
@@ -40,11 +40,11 @@ final case class VersionedEditorInterface(
 )
 
 object VersionedEditorInterface {
-  implicit val show: Show[VersionedEditorInterface] = Show.show { vei =>
+  given show: Show[VersionedEditorInterface] = Show.show { vei =>
     show"VersionedEditorInterface(version = ${vei.version}, contentType = ${vei.contentTypeId.asString}, editorInterface = ${vei.editorInterface})"
   }
 
-  implicit val eq: Eq[VersionedEditorInterface] = Eq.instance { (a, b) =>
+  given eq: Eq[VersionedEditorInterface] = Eq.instance { (a, b) =>
     a.version === b.version && a.contentTypeId === b.contentTypeId && a.editorInterface === b.editorInterface
   }
 }

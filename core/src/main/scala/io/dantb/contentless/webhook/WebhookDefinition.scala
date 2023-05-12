@@ -15,7 +15,7 @@ final case class WebhookDefinition(
 )
 
 object WebhookDefinition {
-  implicit val eq: Eq[WebhookDefinition] = Versioned.eqUnversionedUniversalEquals
+  given eq: Eq[WebhookDefinition] = Versioned.eqUnversionedUniversalEquals
 }
 
 final case class WebhookHeader(key: String, value: Option[String], secret: Boolean) {

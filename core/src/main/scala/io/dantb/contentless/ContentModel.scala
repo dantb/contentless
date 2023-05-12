@@ -30,15 +30,15 @@ trait ContentModel[A] {
 }
 
 object ContentModel {
-  def apply[A](implicit contentModel: ContentModel[A]): ContentModel[A] = contentModel
+  def apply[A](using contentModel: ContentModel[A]): ContentModel[A] = contentModel
 }
 
 /** The ID of the content type. Must be unique (within each environment) */
 final case class ContentTypeId(asString: String) extends AnyVal
 
 object ContentTypeId {
-  implicit val eq: Eq[ContentTypeId]     = Eq.by(_.asString)
-  implicit val show: Show[ContentTypeId] = _.asString
+  given eq: Eq[ContentTypeId]     = Eq.by(_.asString)
+  given show: Show[ContentTypeId] = _.asString
 
   def of[A: ContentModel]: ContentTypeId =
     ContentModel[A].contentType
@@ -58,7 +58,7 @@ final case class Field(
 )
 
 object Field {
-  implicit val eq: Eq[Field] = Eq.instance { (a, b) =>
+  given eq: Eq[Field] = Eq.instance { (a, b) =>
     a.id === b.id && a.name === b.name && a.required === b.required && a.disabled === b.disabled &&
     a.fieldType === b.fieldType && a.defaultValue === b.defaultValue
   }
@@ -67,7 +67,7 @@ object Field {
 sealed trait Validation extends Product with Serializable
 
 object Validation {
-  implicit val eq: Eq[Validation] = Eq.fromUniversalEquals
+  given eq: Eq[Validation] = Eq.fromUniversalEquals
 
   final case class ContainedIn(allowedValues: List[String]) extends Validation
 
@@ -123,7 +123,7 @@ final case class ContentType(
 
 object ContentType {
 
-  implicit val eq: Eq[ContentType] = (a, b) =>
+  given eq: Eq[ContentType] = (a, b) =>
     a.id === b.id &&
       a.name === b.name &&
       a.description === b.description &&

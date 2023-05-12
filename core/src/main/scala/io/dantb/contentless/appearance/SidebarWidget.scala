@@ -10,13 +10,13 @@ sealed trait SidebarWidget {
 }
 
 object SidebarWidget {
-  implicit val show: Show[SidebarWidget] = Show.show {
+  given show: Show[SidebarWidget] = Show.show {
     case e: Extension => s"SidebarExtension(id = ${e.id}, namespace = ${e.namespace})"
     case a: App       => s"SidebarApp(id = ${a.id}, namespace = ${a.namespace}"
     case b: BuiltIn   => b.show
   }
 
-  implicit val eq: Eq[SidebarWidget] = Eq.instance { (a, b) =>
+  given eq: Eq[SidebarWidget] = Eq.instance { (a, b) =>
     a.id === b.id && a.namespace == b.namespace
   }
 
@@ -52,7 +52,7 @@ object SidebarWidget {
   }
 
   object BuiltIn {
-    implicit val showBuiltIn: Show[BuiltIn] = Show.fromToString
+    given showBuiltIn: Show[BuiltIn] = Show.fromToString
 
     val Namespace: String = "sidebar-builtin"
 

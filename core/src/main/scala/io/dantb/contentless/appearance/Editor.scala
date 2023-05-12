@@ -14,13 +14,13 @@ object Editor {
   // Taken from: https://www.contentful.com/developers/_assets/apps/editor-interfaces/default-editors.3870e02a40.json
   val Default: Set[Editor] = Set(EntryEditor(disabled = false))
 
-  implicit val show: Show[Editor] = Show.show {
+  given show: Show[Editor] = Show.show {
     case e: Extension => s"EditorExtension(id = ${e.id}, namespace = ${e.namespace}, disabled = ${e.disabled}"
     case a: App       => s"EditorApp(id = ${a.id}, namespace = ${a.namespace}, disabled = ${a.disabled})"
     case b: BuiltIn   => b.show
   }
 
-  implicit val eq: Eq[Editor] = Eq.instance { (a, b) =>
+  given eq: Eq[Editor] = Eq.instance { (a, b) =>
     a.id === b.id && a.namespace === b.namespace && a.disabled === b.disabled
   }
 
@@ -45,7 +45,7 @@ object Editor {
   object BuiltIn {
     val Namespace = "editor-builtin"
 
-    implicit val showBuiltIn: Show[BuiltIn] = Show.show {
+    given showBuiltIn: Show[BuiltIn] = Show.show {
       case EntryEditor(disabled)      => s"EntryEditor(disabled = $disabled)"
       case ReferencesEditor(disabled) => s"ReferencesEditor(disabled = $disabled)"
       case TagsEditor(disabled)       => s"TagsEditor(disabled = $disabled)"

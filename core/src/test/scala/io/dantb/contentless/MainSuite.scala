@@ -64,7 +64,7 @@ object PrettyPerson {
   val PersonCustomSidebarWidget: SidebarWidget = SidebarWidget.Extension("this-is-a-custom-sidebar-widget")
   val PersonSidebar: List[SidebarWidget]       = List(Publication, PersonCustomSidebarWidget, InfoPanel)
 
-  implicit val codec: PrettyEntryCodec[PrettyPerson] =
+  given codec: PrettyEntryCodec[PrettyPerson] =
     (
       prettyText("name", "Name", Set(Validation.ContainedIn(List("John", "Jack")))).withControl(NameControl).required,
       prettyLongText(
@@ -118,7 +118,7 @@ final case class PrettyAllMimeTypeGroupMedia(
     multiMedia: Media
 )
 object PrettyAllMimeTypeGroupMedia {
-  implicit val codec: PrettyEntryCodec[PrettyAllMimeTypeGroupMedia] = (
+  given codec: PrettyEntryCodec[PrettyAllMimeTypeGroupMedia] = (
     prettyMedia("archiveMedia", "Archive Media", Set(MimeTypeGroup.Archive)).required,
     prettyMedia("attachmentMedia", "Attachment Media", Set(MimeTypeGroup.Attachment)).required,
     prettyMedia("audioMedia", "Audio Media", Set(MimeTypeGroup.Audio)).required,

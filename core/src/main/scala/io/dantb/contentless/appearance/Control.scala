@@ -20,11 +20,11 @@ final case class FieldControl(
 )
 
 object FieldControl {
-  implicit val show: Show[FieldControl] = Show.show { fc =>
+  given show: Show[FieldControl] = Show.show { fc =>
     show"FieldControl(fieldId = ${fc.fieldId}, control = ${fc.control}, settings = ${fc.settings})"
   }
 
-  implicit val eq: Eq[FieldControl] = Eq.instance { (a, b) =>
+  given eq: Eq[FieldControl] = Eq.instance { (a, b) =>
     a.fieldId === b.fieldId && a.control === b.control && eqSet[FieldControlSetting].eqv(a.settings, b.settings)
   }
 }
@@ -35,13 +35,13 @@ sealed trait Control {
 }
 
 object Control {
-  implicit val show: Show[Control] = Show.show {
+  given show: Show[Control] = Show.show {
     case e: Extension => s"ControlExtension(id = ${e.id}, namespace = ${e.namespace})"
     case a: App       => s"ControlApp(id = ${a.id}, namespace = ${a.namespace}"
     case b: BuiltIn   => b.show
   }
 
-  implicit val eq: Eq[Control] = Eq.instance { (a, b) =>
+  given eq: Eq[Control] = Eq.instance { (a, b) =>
     a.id === b.id && a.namespace === b.namespace
   }
 
@@ -106,7 +106,7 @@ object Control {
   }
 
   object BuiltIn {
-    implicit val showBuiltIn: Show[BuiltIn] = Show.fromToString
+    given showBuiltIn: Show[BuiltIn] = Show.fromToString
 
     val Namespace: String = "builtin"
 

@@ -15,12 +15,12 @@ import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.webhook.*
 
 object implicits extends dsl {
-  implicit def contentfulEntryEncoder[A](implicit codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
+  implicit def contentfulEntryEncoder[A](using codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
     obj(
       "fields" -> codec.write(value.fields).asJson
     )
 
-  implicit val timestampsDecoder: Decoder[Timestamps] = c =>
+  given timestampsDecoder: Decoder[Timestamps] = c =>
     for {
       createdAt        <- c.downField("createdAt").as[Option[ZonedDateTime]]
       updatedAt        <- c.downField("updatedAt").as[Option[ZonedDateTime]]
@@ -32,7 +32,7 @@ object implicits extends dsl {
       publishedAt = publishedAt,
       firstPublishedAt = firstPublishedAt
     )
-  implicit val authorsDecoder: Decoder[Authors] = c =>
+  given authorsDecoder: Decoder[Authors] = c =>
     for {
       createdBy   <- c.downField("createdBy").as[Option[Reference]]
       updatedBy   <- c.downField("updatedBy").as[Option[Reference]]
@@ -43,7 +43,7 @@ object implicits extends dsl {
       publishedBy = publishedBy
     )
 
-  implicit def contentfulEntryDecoder[A](implicit codec: EntryCodec[A]): Decoder[Entry[A]] = c =>
+  implicit def contentfulEntryDecoder[A](using codec: EntryCodec[A]): Decoder[Entry[A]] = c =>
     for {
       id <- c.downField("sys").get[Option[String]]("id")
       fields <- c
@@ -64,7 +64,7 @@ object implicits extends dsl {
       authors = authors
     )
 
-  implicit def contentfulEntriesAndIncludesDecoder[A](implicit
+  implicit def contentfulEntriesAndIncludesDecoder[A](using
       decoder: Decoder[Entry[A]]
   ): Decoder[EntriesAndIncludes[A]] = c =>
     (
@@ -83,7 +83,7 @@ object implicits extends dsl {
       )
     }
 
-  implicit val zonedDateTimeEncoder: Encoder[ZonedDateTime] = zdt =>
+  given zonedDateTimeEncoder: Encoder[ZonedDateTime] = zdt =>
     Json.fromString(
       zdt
         .withZoneSameInstant(ZoneId.of("UTC"))
@@ -91,12 +91,12 @@ object implicits extends dsl {
         .format(DateTimeFormatter.ISO_INSTANT)
     )
 
-  implicit val zonedDateTimeDecoder: Decoder[ZonedDateTime] = Decoder.decodeZonedDateTime
+  given zonedDateTimeDecoder: Decoder[ZonedDateTime] = Decoder.decodeZonedDateTime
   def contentfulListDecoder[A: Decoder]: Decoder[List[A]]   = _.get[List[A]]("items")
-  implicit val contentTypeIdEncoder: Encoder[ContentTypeId] = Encoder[String].contramap(_.asString)
-  implicit val contentTypeIdDecoder: Decoder[ContentTypeId] = Decoder[String].map(ContentTypeId.apply)
-  implicit val mimeTypeGroupEncoder: Encoder[MimeTypeGroup] = Encoder[String].contramap(_.typeName)
-  implicit val mimeTypeGroupDecoder: Decoder[MimeTypeGroup] = Decoder[String].emap {
+  given contentTypeIdEncoder: Encoder[ContentTypeId] = Encoder[String].contramap(_.asString)
+  given contentTypeIdDecoder: Decoder[ContentTypeId] = Decoder[String].map(ContentTypeId.apply)
+  given mimeTypeGroupEncoder: Encoder[MimeTypeGroup] = Encoder[String].contramap(_.typeName)
+  given mimeTypeGroupDecoder: Decoder[MimeTypeGroup] = Decoder[String].emap {
     case "archive"      => MimeTypeGroup.Archive.asRight
     case "attachment"   => MimeTypeGroup.Attachment.asRight
     case "audio"        => MimeTypeGroup.Audio.asRight
@@ -112,21 +112,21 @@ object implicits extends dsl {
     case other          => s"Unknown mime type: $other".asLeft
   }
 
-  implicit val assetDataEncoder: Encoder[File] = data =>
+  given assetDataEncoder: Encoder[File] = data =>
     obj(
       "contentType" -> data.contentType.asJson,
       "fileName"    -> data.fileName.asJson,
       "upload"      -> data.upload.asJson
     )
 
-  implicit val assetDataDecoder: Decoder[File] = c =>
+  given assetDataDecoder: Decoder[File] = c =>
     (
       c.downField("contentType").as[String],
       c.downField("fileName").as[String],
       c.get[String]("upload").orElse(c.get[String]("url"))
     ).mapN(File.apply)
 
-  implicit val markEncoder: Encoder[RichText.Mark] = mark =>
+  given markEncoder: Encoder[RichText.Mark] = mark =>
     obj(
       "type" -> mark.`type`.asJson
     )
@@ -256,7 +256,7 @@ object implicits extends dsl {
       )
   }
 
-  implicit val markDecoder: Decoder[RichText.Mark] =
+  given markDecoder: Decoder[RichText.Mark] =
     _.downField("type")
       .as[String]
       .flatMap { str =>
@@ -265,31 +265,31 @@ object implicits extends dsl {
           .toRight(DecodingFailure(s"Invalid Mark: $str", Nil))
       }
 
-  implicit val paragraphDecoder: Decoder[RichText.Paragraph] = c =>
+  given paragraphDecoder: Decoder[RichText.Paragraph] = c =>
     c.get[String]("nodeType").flatMap {
       case "paragraph" => c.get[List[RichText.Node]]("content").map(RichText.Paragraph.apply)
       case other       => Left(DecodingFailure(s"Invalid paragraph nodeType: $other", Nil))
     }
 
-  implicit val textDecoder: Decoder[RichText.Text] = c =>
+  given textDecoder: Decoder[RichText.Text] = c =>
     c.get[String]("nodeType").flatMap {
       case "text" => (c.get[String]("value"), c.get[List[RichText.Mark]]("marks")).mapN(RichText.Text.apply)
       case other  => Left(DecodingFailure(s"Invalid text nodeType: $other", Nil))
     }
 
-  implicit val listItemDecoder: Decoder[RichText.ListItem] = c =>
+  given listItemDecoder: Decoder[RichText.ListItem] = c =>
     c.get[String]("nodeType").flatMap {
       case "list-item" => c.get[List[RichText.Node]]("content").map(RichText.ListItem.apply)
       case other       => Left(DecodingFailure(s"Invalid list-item nodeType: $other", Nil))
     }
 
-  implicit val hrDecoder: Decoder[RichText.Hr] = c =>
+  given hrDecoder: Decoder[RichText.Hr] = c =>
     c.get[String]("nodeType").flatMap {
       case "hr"  => c.get[List[RichText.Hr]]("content").map(RichText.Hr.apply)
       case other => Left(DecodingFailure(s"Invalid hr nodeType: $other", Nil))
     }
 
-  implicit val richTextDecoder: Decoder[RichText.Node] = c =>
+  given richTextDecoder: Decoder[RichText.Node] = c =>
     c.downField("nodeType").as[String].flatMap {
       case "text"           => c.as[RichText.Text]
       case "heading-1"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading1.apply)
@@ -337,17 +337,17 @@ object implicits extends dsl {
         ).mapN(RichText.EntryHyperlink.apply)
     }
 
-  implicit val contentTypeHeaderEncoder: Encoder[ContentTypeHeader] = Encoder[String].contramap(_.key)
+  given contentTypeHeaderEncoder: Encoder[ContentTypeHeader] = Encoder[String].contramap(_.key)
 
-  implicit val contentTypeHeaderDecoder: Decoder[ContentTypeHeader] =
+  given contentTypeHeaderDecoder: Decoder[ContentTypeHeader] =
     Decoder[String].emap(s => ContentTypeHeader.parse(s).toRight(s"Invalid webhook content type $s"))
 
-  implicit val methodEncoder: Encoder[Method] = Encoder[String].contramap(_.asString)
+  given methodEncoder: Encoder[Method] = Encoder[String].contramap(_.asString)
 
-  implicit val methodDecoder: Decoder[Method] =
+  given methodDecoder: Decoder[Method] =
     Decoder[String].emap(s => Method.parse(s).toRight(s"Invalid webhook method $s"))
 
-  implicit val transformationEncoder: Encoder[Transformation] = t => {
+  given transformationEncoder: Encoder[Transformation] = t => {
     def encodeOption[A: Encoder](key: String, opt: Option[A]): Iterable[(String, Json)] =
       opt.map(v => key -> v.asJson).toIterable
 
@@ -359,7 +359,7 @@ object implicits extends dsl {
     )
   }
 
-  implicit val transformationDecoder: Decoder[Transformation] = c =>
+  given transformationDecoder: Decoder[Transformation] = c =>
     (
       c.get[Option[Method]]("method"),
       c.get[Option[ContentTypeHeader]]("contentType"),
@@ -367,7 +367,7 @@ object implicits extends dsl {
       c.get[Option[Json]]("body")
     ).mapN(Transformation.apply)
 
-  implicit val webhookDefinitionEncoder: Encoder[WebhookDefinition] = req =>
+  given webhookDefinitionEncoder: Encoder[WebhookDefinition] = req =>
     obj(
       "name"           -> req.name.asJson,
       "url"            -> req.url.asJson,
@@ -377,7 +377,7 @@ object implicits extends dsl {
       "headers"        -> req.headers.asJson
     )
 
-  implicit val webhookDefinitionDecoder: Decoder[WebhookDefinition] = c =>
+  given webhookDefinitionDecoder: Decoder[WebhookDefinition] = c =>
     (
       c.downField("sys").get[String]("id"),
       c.get[String]("name"),
@@ -436,7 +436,7 @@ object implicits extends dsl {
       )
   }
 
-  implicit val fieldTypeDecoder: Decoder[FieldType] = c =>
+  given fieldTypeDecoder: Decoder[FieldType] = c =>
     c.downField("type").as[String].flatMap {
       case "Text"     => c.downField("validations").as[Set[Validation]].map(FieldType.Text(true, _))
       case "Symbol"   => c.downField("validations").as[Set[Validation]].map(FieldType.Text(false, _))
@@ -482,7 +482,7 @@ object implicits extends dsl {
         ).mapN(FieldType.Array.apply)
     }
 
-  implicit val fieldEncoder: Encoder[Field] = field => {
+  given fieldEncoder: Encoder[Field] = field => {
     val typeFields = field.fieldType.asJson
 
     obj(
@@ -496,7 +496,7 @@ object implicits extends dsl {
       .mapObject(if (field.defaultValue.isEmpty) identity else _.add("defaultValue", field.defaultValue.asJson))
   }
 
-  implicit val fieldDecoder: Decoder[Field] = c =>
+  given fieldDecoder: Decoder[Field] = c =>
     (
       c.get[String]("id"),
       c.get[String]("name"),
@@ -506,24 +506,24 @@ object implicits extends dsl {
       c.get[Option[Map[String, Json]]]("defaultValue").map(_.getOrElse(Map.empty))
     ).mapN(Field.apply)
 
-  implicit val webhookHeaderEncoder: Encoder[WebhookHeader] = header =>
+  given webhookHeaderEncoder: Encoder[WebhookHeader] = header =>
     obj(
       "key"    -> header.key.asJson,
       "value"  -> header.value.asJson,
       "secret" -> header.secret.asJson
     )
 
-  implicit val webhookHeaderDecoder: Decoder[WebhookHeader] = c =>
+  given webhookHeaderDecoder: Decoder[WebhookHeader] = c =>
     (
       c.get[String]("key"),
       c.get[Option[String]]("value"),
       c.get[Option[Boolean]]("secret").map(_.getOrElse(false))
     ).mapN(WebhookHeader.apply)
 
-  implicit val webhookTopicEncoder: Encoder[WebhookTopic] =
+  given webhookTopicEncoder: Encoder[WebhookTopic] =
     Encoder[String].contramap(topic => s"${topic.entityType.typeName}.${topic.event.eventName}")
 
-  implicit val webhookTopicDecoder: Decoder[WebhookTopic] =
+  given webhookTopicDecoder: Decoder[WebhookTopic] =
     Decoder[String].emap { str =>
       str.split('.') match {
         case Array(typeName, eventName) =>
@@ -535,29 +535,29 @@ object implicits extends dsl {
       }
     }
 
-  implicit val propertyPathEncoder: Encoder[PropertyPath] = Encoder[String].contramap(_.asString)
-  implicit val propertyPathDecoder: Decoder[PropertyPath] = Decoder[String].emap { str =>
+  given propertyPathEncoder: Encoder[PropertyPath] = Encoder[String].contramap(_.asString)
+  given propertyPathDecoder: Decoder[PropertyPath] = Decoder[String].emap { str =>
     PropertyPath.fromString(str).toRight(s"Unrecognized property path: $str")
   }
 
-  implicit val referenceEncoder: Encoder[Reference] = ref =>
+  given referenceEncoder: Encoder[Reference] = ref =>
     obj("sys" -> obj("type" -> "Link".asJson, "linkType" -> "Entry".asJson, "id" -> ref.id.asJson))
 
-  implicit val referenceDecoder: Decoder[Reference] = c =>
+  given referenceDecoder: Decoder[Reference] = c =>
     c.downField("sys").downField("id").as[String].map(Reference.apply)
 
-  implicit val locationEncoder: Encoder[Location] = location =>
+  given locationEncoder: Encoder[Location] = location =>
     obj("lat" -> location.latitude.asJson, "lon" -> location.longitude.asJson)
 
-  implicit val locationDecoder: Decoder[Location] = c =>
+  given locationDecoder: Decoder[Location] = c =>
     (c.downField("lat").as[Double], c.downField("lon").as[Double]).mapN(Location.apply)
 
-  implicit val mediaEncoder: Encoder[Media] = media =>
+  given mediaEncoder: Encoder[Media] = media =>
     obj("sys" -> obj("type" -> "Link".asJson, "linkType" -> "Asset".asJson, "id" -> media.id.asJson))
 
-  implicit val mediaDecoder: Decoder[Media] = _.downField("sys").downField("id").as[String].map(Media.apply)
+  given mediaDecoder: Decoder[Media] = _.downField("sys").downField("id").as[String].map(Media.apply)
 
-  implicit val webhookFilterEncoder: Encoder[WebhookFilter] = {
+  given webhookFilterEncoder: Encoder[WebhookFilter] = {
     case WebhookFilter.Equals(property, operand) =>
       obj(
         "equals" -> Json.arr(
@@ -585,7 +585,7 @@ object implicits extends dsl {
       )
   }
 
-  implicit val webhookFilterDecoder: Decoder[WebhookFilter] = c => {
+  given webhookFilterDecoder: Decoder[WebhookFilter] = c => {
     val equals = c.downField("equals").success.map { eqCur =>
       (
         eqCur.downN(0).downField("doc").as[PropertyPath],
@@ -617,7 +617,7 @@ object implicits extends dsl {
       DecodingFailure(s"Failed to match a webhook filter on $c", Nil).asLeft
   }
 
-  implicit val contentTypeEncoder: Encoder[ContentType] = ct =>
+  given contentTypeEncoder: Encoder[ContentType] = ct =>
     obj(
       "displayField" -> ct.displayField.asJson,
       "name"         -> ct.name.asJson,
@@ -625,7 +625,7 @@ object implicits extends dsl {
       "fields"       -> ct.fields.asJson
     )
 
-  implicit val contentTypeDecoder: Decoder[ContentType] = c =>
+  given contentTypeDecoder: Decoder[ContentType] = c =>
     for {
       id           <- c.downField("sys").downField("id").as[ContentTypeId]
       name         <- c.downField("name").as[String]
@@ -642,14 +642,14 @@ object implicits extends dsl {
       version = version
     )
 
-  implicit val validationSizeDecoder: Decoder[Validation.Size] = c =>
+  given validationSizeDecoder: Decoder[Validation.Size] = c =>
     for {
       min     <- c.downField("size").downField("min").as[Option[Int]]
       max     <- c.downField("size").downField("max").as[Option[Int]]
       message <- c.downField("message").as[Option[String]]
     } yield Validation.Size(min, max, message)
 
-  implicit val richTextNodesValidationDecoder: Decoder[Validation.RichTextNodes] = c => {
+  given richTextNodesValidationDecoder: Decoder[Validation.RichTextNodes] = c => {
     import Validation.*
     def parseNodeEntryValidation[A](
         key: String,
@@ -681,7 +681,7 @@ object implicits extends dsl {
     } yield Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
   }
 
-  implicit val validationDecoder: Decoder[Validation] = c =>
+  given validationDecoder: Decoder[Validation] = c =>
     c.downField("in").success.map(_.as[List[String]].map[Validation](Validation.ContainedIn.apply)) orElse
       c.downField("enabledMarks").success.map(_.as[Set[String]].map[Validation](Validation.RichTextMarks.apply)) orElse
       c
@@ -696,13 +696,13 @@ object implicits extends dsl {
       c.downField("linkContentType").success.as(c.as[Validation.LinkContentType]) getOrElse
       DecodingFailure(s"Failed to match a validation rule on $c", Nil).asLeft
 
-  implicit val linkContentTypeEncoder: Encoder[Validation.LinkContentType] = lct =>
+  given linkContentTypeEncoder: Encoder[Validation.LinkContentType] = lct =>
     obj(
       "linkContentType" -> lct.allowedContentTypes.asJson,
       "message"         -> lct.message.asJson
     )
 
-  implicit val linkContentTypeDecoder: Decoder[Validation.LinkContentType] = c =>
+  given linkContentTypeDecoder: Decoder[Validation.LinkContentType] = c =>
     for {
       types   <- c.downField("linkContentType").as[Set[String]]
       message <- c.downField("message").as[Option[String]]
@@ -799,7 +799,7 @@ object implicits extends dsl {
       )
   }
 
-  implicit val controlEnc: Encoder[FieldControl] = fc => {
+  given controlEnc: Encoder[FieldControl] = fc => {
     val maybeSettings: Option[Json] =
       if (fc.settings.nonEmpty)
         Some(fc.settings.map(setting => setting.name -> encodeSettingValue(setting)).toMap.asJson)
@@ -828,10 +828,10 @@ object implicits extends dsl {
       case setting: CustomSetting                    => setting.toJson
     }
 
-  implicit val sidebarEnc: Encoder[SidebarWidget] = control =>
+  given sidebarEnc: Encoder[SidebarWidget] = control =>
     obj("widgetId" -> control.id.asJson, "widgetNamespace" -> control.namespace.asJson)
 
-  implicit val editorEnc: Encoder[Editor] = control => {
+  given editorEnc: Encoder[Editor] = control => {
     val disabled = if (control.disabled) Some("disabled" -> true.asJson) else None
     Json.fromFields(
       List(
@@ -841,7 +841,7 @@ object implicits extends dsl {
     )
   }
 
-  implicit val interfaceEnc: Encoder[EditorInterface] = interface => {
+  given interfaceEnc: Encoder[EditorInterface] = interface => {
     def encNonEmpty[A: Encoder](key: String, list: List[A]): Option[(String, Json)] =
       if (list.nonEmpty) Some(key -> list.asJson) else None
 
@@ -852,14 +852,14 @@ object implicits extends dsl {
     )
   }
 
-  implicit val datePickerClockTypeDec: Decoder[DatePicker.ClockType] = Decoder[String].emap(s =>
+  given datePickerClockTypeDec: Decoder[DatePicker.ClockType] = Decoder[String].emap(s =>
     DatePicker.ClockType.parse(s).toRight(s"Invalid ${DatePicker.ClockType.Name} field setting: $s")
   )
 
-  implicit val datePickerFormatDec: Decoder[DatePicker.Format] =
+  given datePickerFormatDec: Decoder[DatePicker.Format] =
     Decoder[String].emap(s => DatePicker.Format.parse(s).toRight(s"Invalid ${DatePicker.Format.Name} field setting: $s"))
 
-  implicit val controlDec: Decoder[FieldControl] = c =>
+  given controlDec: Decoder[FieldControl] = c =>
     for {
       fieldId   <- c.get[String]("fieldId")
       widgetId  <- c.get[String]("widgetId")
@@ -889,7 +889,7 @@ object implicits extends dsl {
     }
   }
 
-  implicit val sidebarDec: Decoder[SidebarWidget] = c =>
+  given sidebarDec: Decoder[SidebarWidget] = c =>
     for {
       widgetId  <- c.get[String]("widgetId")
       namespace <- c.get[String]("widgetNamespace")
@@ -898,7 +898,7 @@ object implicits extends dsl {
         .toRight(DecodingFailure(s"Invalid sidebar widget $widgetId for namespace $namespace", Nil))
     } yield sidebar
 
-  implicit val editorDec: Decoder[Editor] = c =>
+  given editorDec: Decoder[Editor] = c =>
     for {
       widgetId  <- c.get[String]("widgetId")
       namespace <- c.get[String]("widgetNamespace")
@@ -908,7 +908,7 @@ object implicits extends dsl {
         .toRight(DecodingFailure(s"Invalid editor widget $widgetId for namespace $namespace", Nil))
     } yield editor
 
-  implicit val interfaceDec: Decoder[EditorInterface] = c => {
+  given interfaceDec: Decoder[EditorInterface] = c => {
     val editorsCur  = c.downField("editors")
     val sidebarCur  = c.downField("sidebar")
     val controlsCur = c.downField("controls")
@@ -938,10 +938,10 @@ object implicits extends dsl {
           )
       }
 
-  implicit val versionedInterfaceEnc: Encoder[VersionedEditorInterface] =
+  given versionedInterfaceEnc: Encoder[VersionedEditorInterface] =
     Encoder[EditorInterface].contramap(_.editorInterface)
 
-  implicit val versionedInterfaceDec: Decoder[VersionedEditorInterface] = c =>
+  given versionedInterfaceDec: Decoder[VersionedEditorInterface] = c =>
     (
       c.downField("sys").downField("version").as[Int],
       c.downField("sys").downField("contentType").downField("sys").downField("id").as[ContentTypeId],

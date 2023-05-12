@@ -8,12 +8,12 @@ import io.circe.Json
 sealed abstract class FieldControlSetting(val name: String)
 
 object FieldControlSetting {
-  implicit val show: Show[FieldControlSetting] = Show.show {
+  given show: Show[FieldControlSetting] = Show.show {
     case CustomSetting(name, json) => show"CustomSetting(name = $name, json = $json)"
     case other                     => other.toString
   }
 
-  implicit val eq: Eq[FieldControlSetting] = Eq.instance {
+  given eq: Eq[FieldControlSetting] = Eq.instance {
     case (CustomSetting(n1, json1), CustomSetting(n2, json2)) => n1 === n2 && Eq.eqv(json1, json2)
     case (a, b)                                               => a == b
   }

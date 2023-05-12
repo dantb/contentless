@@ -19,7 +19,7 @@ object Versioned {
         }
     }
 
-  implicit val webhookVersion: Versioned[WebhookDefinition] =
+  given webhookVersion: Versioned[WebhookDefinition] =
     new Versioned[WebhookDefinition] {
       override def version: Lens[WebhookDefinition, Option[Int]] =
         new Lens[WebhookDefinition, Option[Int]] {
@@ -29,7 +29,7 @@ object Versioned {
         }
     }
 
-  implicit val contentTypeVersion: Versioned[ContentType] =
+  given contentTypeVersion: Versioned[ContentType] =
     new Versioned[ContentType] {
       override def version: Lens[ContentType, Option[Int]] =
         new Lens[ContentType, Option[Int]] {
@@ -39,7 +39,7 @@ object Versioned {
         }
     }
 
-  def apply[A](implicit versioned: Versioned[A]): Versioned[A] = versioned
+  def apply[A](using versioned: Versioned[A]): Versioned[A] = versioned
 
   def unversioned[A: Versioned](a: A): A = Versioned[A].version.set(a)(None)
 

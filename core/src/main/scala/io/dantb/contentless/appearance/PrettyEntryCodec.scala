@@ -54,7 +54,7 @@ sealed abstract case class PrettyEntryCodec[A](
 
 object PrettyEntryCodec {
 
-  def apply[A](implicit codec: PrettyEntryCodec[A]): PrettyEntryCodec[A] = codec
+  def apply[A](using codec: PrettyEntryCodec[A]): PrettyEntryCodec[A] = codec
 
   def unit: PrettyEntryCodec[Unit] = new PrettyEntryCodec[Unit](EntryCodec.unit, Set.empty) {}
 

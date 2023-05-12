@@ -8,7 +8,7 @@ import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.*
 import io.dantb.contentless.RichText.Node
 import io.dantb.contentless.appearance.PrettyEntryCodec
-import io.dantb.contentless.circe.implicits.*
+import io.dantb.contentless.circe.implicits.given
 
 sealed trait EntryCodec[A] { self =>
   def schema: List[Field]
@@ -34,7 +34,7 @@ sealed trait EntryCodec[A] { self =>
 }
 
 object EntryCodec {
-  def apply[A](implicit codec: EntryCodec[A]): EntryCodec[A] = codec
+  def apply[A](using codec: EntryCodec[A]): EntryCodec[A] = codec
 
   def unit: EntryCodec[Unit] =
     new EntryCodec[Unit] {
@@ -51,7 +51,7 @@ object EntryCodec {
       override def imap[A, B](fa: EntryCodec[A])(f: A => B)(g: B => A): EntryCodec[B] = fa.imap(f)(g)
     }
 
-  implicit def fromPrettyEntryCodec[A](implicit pretty: PrettyEntryCodec[A]): EntryCodec[A] =
+  implicit def fromPrettyEntryCodec[A](using pretty: PrettyEntryCodec[A]): EntryCodec[A] =
     pretty.entryCodec
 }
 
@@ -62,7 +62,7 @@ final case class FieldCodec[A] private (
     locale: Locale,
     isDisabled: Boolean,
     defaultValue: Option[A]
-)(implicit encoder: Encoder[A], decoder: Decoder[A]) {
+)(using encoder: Encoder[A], decoder: Decoder[A]) {
   def required: EntryCodec[A] =
     new EntryCodec[A] {
       override def read(fields: Map[String, Json]): Either[String, A] =
