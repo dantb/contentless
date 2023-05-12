@@ -68,6 +68,15 @@ lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+inThisBuild(
+  List(
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
+
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+
 addCommandAlias("organiseImports", "+scalafixAll")
 addCommandAlias("organiseImportsCheck", "+scalafixAll --check")
 addCommandAlias("format", "+scalafmtAll; organiseImports")

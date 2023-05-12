@@ -19,17 +19,21 @@ package io.dantb.contentless
 import java.time.{LocalDateTime, ZonedDateTime}
 
 import cats.syntax.all.*
+import io.circe.Json
+import io.circe.literal.*
+import io.circe.syntax.*
 import io.dantb.contentless.RichText.{Node, Paragraph}
 import io.dantb.contentless.appearance.{Control, Editor, EditorInterface, FieldControl, PrettyEntryCodec, SidebarWidget}
 import io.dantb.contentless.appearance.FieldControlSetting.{CustomSetting, HelpText}
 import io.dantb.contentless.appearance.FieldControlSetting.Boolean.{FalseLabel, TrueLabel}
 import io.dantb.contentless.appearance.FieldControlSetting.DatePicker.{ClockType, Format}
-import io.dantb.contentless.appearance.FieldControlSetting.LinksEditor.{BulkEditing, ShowCreateEntityAction, ShowLinkEntityAction}
+import io.dantb.contentless.appearance.FieldControlSetting.LinksEditor.{
+  BulkEditing,
+  ShowCreateEntityAction,
+  ShowLinkEntityAction
+}
 import io.dantb.contentless.appearance.SidebarWidget.BuiltIn.{InfoPanel, Publication}
 import io.dantb.contentless.circe.implicits.{prettyMedia, *}
-import io.circe.Json
-import io.circe.literal.*
-import io.circe.syntax.*
 
 final case class PrettyPerson(
     name: String,
@@ -79,8 +83,22 @@ object PrettyPerson {
       prettyMedia("profilePic", "Profile picture", Set(MimeTypeGroup.Image)).optional,
       prettyRichText("body", "Body", Set(Validation.RichTextNodeTypes(Set("paragraph")))).required,
       prettyReference("bestFriend", "BFF", Set(ContentTypeId("person"))).optional
-      ).imapN(PrettyPerson.apply)(x => (x.name, x.bio, x.age, x.family, x.birthday, x.birthdayAlt, x.location, x.height, x.likesEggs, x.profilePic, x.body, x.bestFriend))
-      .withEditorApp(PersonEditorApp)
+    ).imapN(PrettyPerson.apply)(x =>
+      (
+        x.name,
+        x.bio,
+        x.age,
+        x.family,
+        x.birthday,
+        x.birthdayAlt,
+        x.location,
+        x.height,
+        x.likesEggs,
+        x.profilePic,
+        x.body,
+        x.bestFriend
+      )
+    ).withEditorApp(PersonEditorApp)
       .withSidebar(PersonSidebar)
 }
 
@@ -118,7 +136,23 @@ object PrettyAllMimeTypeGroupMedia {
       "Multi Media",
       Set(MimeTypeGroup.Video, MimeTypeGroup.Audio, MimeTypeGroup.Richtext, MimeTypeGroup.Image)
     ).required
-  ).imapN(PrettyAllMimeTypeGroupMedia.apply)(x => (x.archiveMedia, x.attachmentMedia, x.audioMedia, x.codeMedia, x.imageMedia, x.markupMedia, x.pdfdocumentMedia, x.plaintextMedia, x.presentationMedia, x.richtextMedia, x.spreadsheetMedia, x.videoMedia, x.multiMedia))
+  ).imapN(PrettyAllMimeTypeGroupMedia.apply)(x =>
+    (
+      x.archiveMedia,
+      x.attachmentMedia,
+      x.audioMedia,
+      x.codeMedia,
+      x.imageMedia,
+      x.markupMedia,
+      x.pdfdocumentMedia,
+      x.plaintextMedia,
+      x.presentationMedia,
+      x.richtextMedia,
+      x.spreadsheetMedia,
+      x.videoMedia,
+      x.multiMedia
+    )
+  )
 }
 
 class PrettyEntryCodecSpec extends munit.FunSuite {

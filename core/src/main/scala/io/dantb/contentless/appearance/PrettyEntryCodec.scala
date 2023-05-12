@@ -4,12 +4,12 @@ import java.time.{LocalDateTime, ZonedDateTime}
 
 import cats.InvariantMonoidal
 import cats.syntax.all.*
+import io.circe.{Decoder, Encoder}
 import io.dantb.contentless._
 import io.dantb.contentless.FieldCodec.Dsl
 import io.dantb.contentless.RichText.Node
 import io.dantb.contentless.appearance.Control.*
 import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
-import io.circe.{Decoder, Encoder}
 
 sealed abstract case class PrettyEntryCodec[A](
     entryCodec: EntryCodec[A],

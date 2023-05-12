@@ -16,11 +16,8 @@
 
 package io.dantb.contentless
 
-import munit.CatsEffectSuite
 import java.time.ZonedDateTime
 
-class GraphQLSuite extends CatsEffectSuite {
+import munit.CatsEffectSuite
 
-
-
-}
+class GraphQLSuite extends CatsEffectSuite {}

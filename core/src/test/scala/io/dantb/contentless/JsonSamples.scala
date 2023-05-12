@@ -16,10 +16,10 @@
 
 package io.dantb.contentless
 
-import io.dantb.contentless.JsonSamples.Optics.*
 import io.circe.Json
 import io.circe.literal.*
 import io.circe.syntax.EncoderOps
+import io.dantb.contentless.JsonSamples.Optics.*
 
 object JsonSamples {
 

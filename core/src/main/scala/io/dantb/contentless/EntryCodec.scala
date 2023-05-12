@@ -4,11 +4,11 @@ import java.time.{LocalDateTime, ZonedDateTime}
 
 import cats.InvariantMonoidal
 import cats.syntax.all.*
+import io.circe.{Decoder, Encoder, Json}
+import io.circe.syntax.*
 import io.dantb.contentless.RichText.Node
 import io.dantb.contentless.appearance.PrettyEntryCodec
 import io.dantb.contentless.circe.implicits.*
-import io.circe.{Decoder, Encoder, Json}
-import io.circe.syntax.*
 
 sealed trait EntryCodec[A] { self =>
   def schema: List[Field]

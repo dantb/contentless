@@ -16,18 +16,24 @@
 
 package io.dantb.contentless
 
-import io.circe._
-import edu.gemini.grackle.Ast._
 import java.time.ZonedDateTime
 
+import edu.gemini.grackle.Ast._
+import io.circe._
 
 object core {
 
   trait Entry[A]
 
   // TODO use newtypes, too many strings makes me nervous
-  final case class Sys(id: String, spaceId: String, envId: String, 
-   publishedAt: Option[ZonedDateTime], firstPublishedAt: Option[ZonedDateTime], publishedVersion: Option[String])
+  final case class Sys(
+      id: String,
+      spaceId: String,
+      envId: String,
+      publishedAt: Option[ZonedDateTime],
+      firstPublishedAt: Option[ZonedDateTime],
+      publishedVersion: Option[String]
+  )
 
   sealed trait Reference[A]
   object Reference {
@@ -50,7 +56,7 @@ object graphql {
   // We could have depth 2 but only Flat values at compile time. So it would have to be handled by users
   // in a pattern match...
   // I guess we could make some utility to get rid of the optionality? Hard to generalise...
-  // Or we could just have optics to access fields deep in the structure. 
+  // Or we could just have optics to access fields deep in the structure.
   // E.g. you'd say article.region.slug and have the library figure out how to project it...
   // It we return an Option[String] though, when it should just be String.
   // Maybe this isn't worth the complexity I'm adding?
@@ -61,11 +67,11 @@ object graphql {
   // values rather than the flat option.
   // could we just use inheritance?
 
-  // This might be overcomplicating. The reason we use Invariant monoidal is because it allows us 
+  // This might be overcomplicating. The reason we use Invariant monoidal is because it allows us
   // to both generate and parse, GET and PUT, entries. We might still actually need the REST client, which may
   // be a ballache to rewrite.
 
-  // Maybe start with what we have, and when coming to rest client, think about the core model again? 
+  // Maybe start with what we have, and when coming to rest client, think about the core model again?
   // or would that waste time?
   def getEntry[F[_], A: Entry](id: String, depth: Int): F[Option[A]] = ???
 
@@ -78,11 +84,6 @@ object graphql {
 
   def getEntries[F[_], A: Entry: Decoder](params: Params): F[List[A]] = ???
 
-  object internal {
-
-
-
-  }
-
+  object internal {}
 
 }

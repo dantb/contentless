@@ -5,7 +5,11 @@ import cats.syntax.all.*
 import io.dantb.contentless.appearance.FieldControlSetting.{CustomSetting, HelpText}
 import io.dantb.contentless.appearance.FieldControlSetting.Boolean.{FalseLabel, TrueLabel}
 import io.dantb.contentless.appearance.FieldControlSetting.DatePicker.{ClockType, Format}
-import io.dantb.contentless.appearance.FieldControlSetting.LinksEditor.{BulkEditing, ShowCreateEntityAction, ShowLinkEntityAction}
+import io.dantb.contentless.appearance.FieldControlSetting.LinksEditor.{
+  BulkEditing,
+  ShowCreateEntityAction,
+  ShowLinkEntityAction
+}
 import io.dantb.contentless.appearance.FieldControlSetting.Rating.Stars
 import io.dantb.contentless.instances.eqSet
 

@@ -5,14 +5,14 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 import cats.syntax.all.*
+import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import io.circe.Json.obj
+import io.circe.syntax.*
 import io.dantb.contentless.*
 import io.dantb.contentless.Entry.{Authors, Timestamps}
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.webhook.*
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
-import io.circe.Json.obj
-import io.circe.syntax.*
 
 object implicits extends dsl {
   implicit def contentfulEntryEncoder[A](implicit codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
