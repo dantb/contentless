@@ -18,8 +18,8 @@ package io.dantb.contentless
 
 import java.time.ZonedDateTime
 
-import edu.gemini.grackle.Ast._
-import io.circe._
+import edu.gemini.grackle.Ast.*
+import io.circe.*
 
 object core:
 
@@ -45,7 +45,7 @@ object core:
 // TODO: let the user specify a depth to go to for generating subqueries?
 object graphql:
 
-  import core._
+  import core.*
 
   // TODO make depth min 0 (direct fields only) and max 10
 

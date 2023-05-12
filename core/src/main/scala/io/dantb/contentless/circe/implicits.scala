@@ -491,7 +491,7 @@ object implicits extends dsl:
       "disabled"  -> field.disabled.asJson
     )
       .deepMerge(typeFields)
-      .mapObject(if (field.defaultValue.isEmpty) identity else _.add("defaultValue", field.defaultValue.asJson))
+      .mapObject(if field.defaultValue.isEmpty then identity else _.add("defaultValue", field.defaultValue.asJson))
 
   given fieldDecoder: Decoder[Field] = c =>
     (
@@ -794,7 +794,7 @@ object implicits extends dsl:
 
   given controlEnc: Encoder[FieldControl] = fc =>
     val maybeSettings: Option[Json] =
-      if (fc.settings.nonEmpty)
+      if fc.settings.nonEmpty then
         Some(fc.settings.map(setting => setting.name -> encodeSettingValue(setting)).toMap.asJson)
       else None
 
@@ -823,7 +823,7 @@ object implicits extends dsl:
     obj("widgetId" -> control.id.asJson, "widgetNamespace" -> control.namespace.asJson)
 
   given editorEnc: Encoder[Editor] = control =>
-    val disabled = if (control.disabled) Some("disabled" -> true.asJson) else None
+    val disabled = if control.disabled then Some("disabled" -> true.asJson) else None
     Json.fromFields(
       List(
         "widgetId"        -> control.id.asJson,
@@ -833,7 +833,7 @@ object implicits extends dsl:
 
   given interfaceEnc: Encoder[EditorInterface] = interface =>
     def encNonEmpty[A: Encoder](key: String, list: List[A]): Option[(String, Json)] =
-      if (list.nonEmpty) Some(key -> list.asJson) else None
+      if list.nonEmpty then Some(key -> list.asJson) else None
 
     Json.fromFields(
       encNonEmpty("editors", interface.editors.toList) ++
@@ -900,10 +900,10 @@ object implicits extends dsl:
     val sidebarCur  = c.downField("sidebar")
     val controlsCur = c.downField("controls")
     for
-      editors  <- if (editorsCur.succeeded) editorsCur.as[Set[Editor]] else Right(Set.empty[Editor])
-      sidebars <- if (sidebarCur.succeeded) sidebarCur.as[List[SidebarWidget]] else Right(Nil)
+      editors  <- if editorsCur.succeeded then editorsCur.as[Set[Editor]] else Right(Set.empty[Editor])
+      sidebars <- if sidebarCur.succeeded then sidebarCur.as[List[SidebarWidget]] else Right(Nil)
       controls <-
-        if (controlsCur.succeeded)
+        if controlsCur.succeeded then
           controlsCur.as[List[Json]].flatMap(_.flatTraverse(swallowFieldsWithoutWidget)).map(_.toSet)
         else Right(Set.empty[FieldControl])
     yield EditorInterface(editors, sidebars, controls)

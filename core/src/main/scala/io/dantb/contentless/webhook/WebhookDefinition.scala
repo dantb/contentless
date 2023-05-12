@@ -19,7 +19,7 @@ object WebhookDefinition:
 
 final case class WebhookHeader(key: String, value: Option[String], secret: Boolean):
   override def toString: String =
-    if (secret) s"{ $key = *** }"
+    if secret then s"{ $key = *** }"
     else s"{ $key = $value }"
 
   override def equals(obj: Any): Boolean =
