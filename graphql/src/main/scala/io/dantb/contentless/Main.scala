@@ -1,3 +1,5 @@
+package org.typelevel.contentless
+
 /*
  * Copyright 2023 Typelevel
  *
@@ -14,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.typelevel.contentless
+package io.dantb.contentless
 
 import cats.effect.{IO, IOApp}
 

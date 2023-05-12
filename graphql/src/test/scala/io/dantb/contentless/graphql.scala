@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package org.typelevel.contentless
+package io.dantb.contentless
 
-trait Entry {}
+import munit.CatsEffectSuite
+import java.time.ZonedDateTime
+
+class GraphQLSuite extends CatsEffectSuite {
+
+
+
+}

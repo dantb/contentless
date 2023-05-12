@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.typelevel.contentless
+package io.dantb.contentless
 
 import io.circe._
 import edu.gemini.grackle.Ast._

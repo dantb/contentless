@@ -16,19 +16,21 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 // publish website from this branch
 ThisBuild / tlSitePublishBranch := Some("main")
 
-val Scala213 = "2.13.10"
+// val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
-ThisBuild / crossScalaVersions := Seq(Scala213, Scala3)
+ThisBuild / crossScalaVersions := Seq(Scala3)
 ThisBuild / scalaVersion := Scala3 // the default Scala
 
 val Cats = "2.9.0"
 val CatsEffect = "3.4.10"
-val Circe = "0.14.1"
+val Circe = "0.14.3"
 val Grackle = "0.11.0"
 val Http4s = "0.23.13"
+val Jawn = "1.3.2"
 val Literally = "1.1.0"
 val MUnit = "0.7.29"
 val MUnitCE = "1.0.7"
+val NewTypes = "0.2.3"
 
 lazy val root = tlCrossRootProject.aggregate(core, graphql)
 
@@ -40,6 +42,9 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"  % Cats,
       "io.circe"      %% "circe-core" % Circe,
+      "io.monix"      %% "newtypes-core" % NewTypes,
+      "io.circe"      %% "circe-literal" % Circe % Test,
+      "org.typelevel"              %% "jawn-parser"               % Jawn              % Test,
       "org.scalameta" %% "munit"      % MUnit % Test,
     )
   )
@@ -62,3 +67,8 @@ lazy val graphql = crossProject(JVMPlatform, JSPlatform)
 lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+
+addCommandAlias("organiseImports", "+scalafixAll")
+addCommandAlias("organiseImportsCheck", "+scalafixAll --check")
+addCommandAlias("format", "+scalafmtAll; organiseImports")
+addCommandAlias("formatCheck", "+scalafmtCheckAll; organiseImportsCheck")
