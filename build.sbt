@@ -31,13 +31,12 @@ val MUnit = "0.7.29"
 val MUnitCE = "1.0.7"
 val NewTypes = "0.2.3"
 
-lazy val root = tlCrossRootProject.aggregate(core, graphql)
+lazy val root = (project in file(".")).aggregate(core, graphql)
 
-lazy val core = crossProject(JVMPlatform)
-  .crossType(CrossType.Pure)
+lazy val core = project
   .in(file("core"))
   .settings(
-    name := "contentless",
+    name := "contentless-core",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"  % Cats,
       "io.circe"      %% "circe-core" % Circe,
@@ -48,11 +47,10 @@ lazy val core = crossProject(JVMPlatform)
     )
   )
 
-lazy val graphql = crossProject(JVMPlatform)
-  .crossType(CrossType.Pure)
+lazy val graphql = project
   .in(file("graphql"))
   .settings(
-    name := "contentless",
+    name := "contentless-graphql",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect"      % CatsEffect,
       "edu.gemini"    %% "gsp-graphql-core" % Grackle,
