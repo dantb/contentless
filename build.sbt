@@ -42,6 +42,7 @@ lazy val core = project
       "io.circe"      %% "circe-core" % Circe,
       "io.monix"      %% "newtypes-core" % NewTypes,
       "io.circe"      %% "circe-literal" % Circe % Test,
+      "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
       "org.typelevel"              %% "jawn-parser"               % Jawn              % Test,
       "org.scalameta" %% "munit"      % MUnit % Test,
     )

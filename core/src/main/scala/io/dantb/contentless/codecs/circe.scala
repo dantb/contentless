@@ -1,4 +1,4 @@
-package io.dantb.contentless.circe
+package io.dantb.contentless.codecs
 
 import java.time.{ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
@@ -12,6 +12,7 @@ import io.dantb.contentless.*
 import io.dantb.contentless.Entry.{Authors, Timestamps}
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
+import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.webhook.*
 
 object implicits extends dsl:

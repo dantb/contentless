@@ -1,8 +1,9 @@
 package io.dantb.contentless
 
 import cats.syntax.all.*
-import io.dantb.contentless.circe.implicits.given
-import io.dantb.contentless.circe.implicits.*
+import io.dantb.contentless.codecs.*
+import io.dantb.contentless.codecs.implicits.given
+import io.dantb.contentless.dsl.*
 
 final case class Asset(title: String, file: File)
 

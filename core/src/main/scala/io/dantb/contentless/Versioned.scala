@@ -1,6 +1,7 @@
 package io.dantb.contentless
 
 import cats.Eq
+import io.dantb.contentless.Versioned
 import io.dantb.contentless.webhook.WebhookDefinition
 
 sealed trait Versioned[A]:
