@@ -217,7 +217,7 @@ object FieldCodec:
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = true, validations),
+        FieldType.Text(longText = false, validations),
         fieldName,
         defaultValue,
         textControl.value,
