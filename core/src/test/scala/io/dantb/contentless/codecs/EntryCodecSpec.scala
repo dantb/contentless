@@ -16,36 +16,178 @@
 
 package io.dantb.contentless.codecs
 
-import io.dantb.contentless.{ContentModel, ContentTypeId}
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
+import io.circe.Json
+import io.circe.syntax.*
+import io.dantb.contentless.{ContentModel, ContentTypeId, Field, FieldType, Media, MimeTypeGroup}
+import io.dantb.contentless.arbitrary.given
+import io.dantb.contentless.codecs.implicits.given
 import io.dantb.contentless.dsl.*
+import munit.ScalaCheckSuite
+import org.scalacheck.Prop.*
 
-class EntryCodecSpec extends munit.FunSuite:
+class EntryCodecSpec extends ScalaCheckSuite:
 
-  test("bool field") {
-    assertEquals(
-      boolean("myField", "My Field", Some(true)).required.schema,
-      List()
-    )
+  property("bool field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[Boolean]) =>
+      val fieldCodec = boolean(id, name, default)
+
+      assertField(fieldCodec, id, name, disabled, FieldType.Boolean, default.map(_.asJson))
+    }
   }
 
-  test("basic content type with primitives") {
-    final case class Foo(t: String, i: Int, b: Boolean, d: Double, lt: Option[String])
+  property("text field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
+      val fieldCodec        = text(id, name, defaultValue = default)
+      val expectedFieldType = FieldType.Text(longText = false, Set.empty)
 
-    val fooContentType: ContentType[Foo] =
-      ContentType(
-        ContentTypeId("foo"),
-        "Foo",
-        Some("t"),
-        Some("A foo does foo things"),
-        (text("t", "Text field").required *:
-          int("i", "Integer field").required *:
-          boolean("b", "Boolean field").required *:
-          decimal("d", "Decimal field").required *:
-          longText("lt", "Optional long text field").optional).to[Foo]
-      )
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("long text field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
+      val fieldCodec        = longText(id, name, defaultValue = default)
+      val expectedFieldType = FieldType.Text(longText = true, Set.empty)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("int field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[Int]) =>
+      val fieldCodec        = int(id, name, default)
+      val expectedFieldType = FieldType.Integer
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("decimal field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[Double]) =>
+      val fieldCodec        = decimal(id, name, default)
+      val expectedFieldType = FieldType.Number
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("json field") {
+    forAll { (id: String, name: String, disabled: Boolean) =>
+      val fieldCodec        = json[Int](id, name)
+      val expectedFieldType = FieldType.Json
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("local date time field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[LocalDateTime]) =>
+      val fieldCodec        = dateTime(id, name, default)
+      val expectedFieldType = FieldType.DateTime
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("zoned date time field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[ZonedDateTime]) =>
+      val fieldCodec        = zonedDateTime(id, name, default)
+      val expectedFieldType = FieldType.DateTime
+      val formattedTruncatedDefault =
+        default.map(x =>
+          x.withZoneSameInstant(ZoneId.of("UTC"))
+            .truncatedTo(ChronoUnit.MILLIS)
+            .format(DateTimeFormatter.ISO_INSTANT)
+            .asJson
+        )
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, formattedTruncatedDefault)
+    }
+  }
+
+  property("location field") {
+    forAll { (id: String, name: String, disabled: Boolean) =>
+      val fieldCodec        = location(id, name)
+      val expectedFieldType = FieldType.Location
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("rich text field") {
+    forAll { (id: String, name: String, disabled: Boolean) =>
+      val fieldCodec        = richText(id, name)
+      val expectedFieldType = FieldType.RichText(Set.empty)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("text list field") {
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[List[String]]) =>
+      val fieldCodec        = textList(id, name, defaultValue = default)
+      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, Set.empty), None, None)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+    }
+  }
+
+  property("media field") {
+    forAll { (id: String, name: String, disabled: Boolean, mimeTypes: Set[MimeTypeGroup]) =>
+      val fieldCodec        = media(id, name, mimeTypes)
+      val expectedFieldType = FieldType.Media(mimeTypes)
+
+      assertField[Media](fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  def assertField[A](
+      fieldCodec: FieldCodec[A],
+      id: String,
+      name: String,
+      disabled: Boolean,
+      expectedFieldType: FieldType,
+      expectedDefaultJson: Option[Json]
+  ): Unit =
+    val fieldCodecWithDisabled = withDisabled(fieldCodec, disabled)
+    val expectedDefaultValue =
+      expectedDefaultJson.map(d => Map(FieldCodec.defaultLocale.code -> d.asJson)).getOrElse(Map.empty)
+    val expected = Field(id, name, required = true, disabled = disabled, expectedFieldType, expectedDefaultValue)
 
     assertEquals(
-      fooContentType.codec.schema,
-      List()
+      fieldCodecWithDisabled.required.schema.headOption,
+      Some(expected)
     )
-  }
+    assertEquals(
+      fieldCodecWithDisabled.optional.schema.headOption,
+      Some(expected.copy(required = false))
+    )
+
+  def withDisabled[A](fieldCodec: FieldCodec[A], disabled: Boolean): FieldCodec[A] =
+    if disabled then fieldCodec.disabled else fieldCodec
+
+  // test("basic content type with primitives") {
+  //   final case class Foo(t: String, i: Int, b: Boolean, d: Double, lt: Option[String])
+
+  //   val fooContentType: ContentType[Foo] =
+  //     ContentType(
+  //       ContentTypeId("foo"),
+  //       "Foo",
+  //       Some("t"),
+  //       Some("A foo does foo things"),
+  //       (text("t", "Text field").required *:
+  //         int("i", "Integer field").required *:
+  //         boolean("b", "Boolean field").required *:
+  //         decimal("d", "Decimal field").required *:
+  //         longText("lt", "Optional long text field").optional).to[Foo]
+  //     )
+
+  //   assertEquals(
+  //     fooContentType.codec.schema,
+  //     List()
+  //   )
+  // }

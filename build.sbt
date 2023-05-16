@@ -45,6 +45,7 @@ lazy val core = project
       "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
       "org.typelevel"              %% "jawn-parser"               % Jawn              % Test,
       "org.scalameta" %% "munit"      % MUnit % Test,
+      "org.scalameta" %% "munit-scalacheck" % MUnit % Test
     )
   )
 
