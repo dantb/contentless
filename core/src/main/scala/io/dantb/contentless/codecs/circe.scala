@@ -15,7 +15,7 @@ import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.webhook.*
 
-object implicits extends dsl:
+object implicits:
   implicit def contentfulEntryEncoder[A](using codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
     obj(
       "fields" -> codec.write(value.fields).asJson

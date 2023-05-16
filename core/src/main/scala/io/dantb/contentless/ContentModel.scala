@@ -3,6 +3,7 @@ package io.dantb.contentless
 import cats.{Eq, Show}
 import cats.syntax.all.*
 import io.circe.Json
+import io.dantb.contentless.codecs.EntryCodec
 
 /** One of the core entities in Contentful - represents the core information for a [[ContentType]].
   *
@@ -27,6 +28,8 @@ trait ContentModel[A]:
 
   /** The Human-Friendly description with the raison d'être of for instances of this Content Model */
   def description: Option[String]
+
+  def codec: EntryCodec[A]
 
 object ContentModel:
   def apply[A](using contentModel: ContentModel[A]): ContentModel[A] = contentModel

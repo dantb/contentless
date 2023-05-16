@@ -293,6 +293,7 @@ object Control:
         helpText: Option[HelpText] = this.helpText
     ): DateTimeControl = new DateTimeControl(value, settings, format, clockType, helpText) {}
 
+    def zoned: DateTimeControl                           = withFormat(FieldControlSetting.DatePicker.Format.TimeZ)
     def withFormat(format: Format): DateTimeControl      = copy(format = Some(format))
     def withClockType(clock: ClockType): DateTimeControl = copy(clockType = Some(clock))
     def withHelpText(helpText: String): DateTimeControl  = copy(helpText = HelpText(helpText).some)

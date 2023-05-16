@@ -14,98 +14,7 @@ import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
 import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.codecs.implicits.given
 import io.dantb.contentless.dsl.*
-
-sealed abstract case class FieldCodec[A](
-    fieldId: String,
-    fieldType: FieldType,
-    fieldName: String,
-    defaultValue: Option[A],
-    locale: Locale = defaultLocale,
-    isDisabled: Boolean = false
-)(using encoder: Encoder[A], decoder: Decoder[A]):
-  self =>
-  def required: EntryCodec[A] =
-    new EntryCodec[A](Set(FieldControl(fieldId, control, settings))):
-      override def read(fields: Map[String, Json]): Either[String, A] =
-        fields
-          .get(fieldId)
-          .toRight(s"Field not found: $fieldId ($fieldType)")
-          .flatMap(_.as[Map[String, Json]].leftMap(_.toString()))
-          .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
-          .flatMap(_.as[A].leftMap(_.toString()))
-          .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
-      override def write(value: A): Map[String, Json] =
-        val localized = Map(locale.code -> value.asJson).asJson
-        Map(fieldId -> localized)
-      override def schema: List[Field] =
-        List(
-          Field(
-            fieldId,
-            fieldName,
-            required = true,
-            isDisabled,
-            fieldType,
-            defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
-          )
-        )
-
-  def optional: EntryCodec[Option[A]] =
-    new EntryCodec[Option[A]](Set(FieldControl(fieldId, control, settings))):
-      override def read(fields: Map[String, Json]): Either[String, Option[A]] =
-        fields
-          .get(fieldId)
-          .traverse[Either[String, *], A] {
-            _.as[Map[String, Json]]
-              .leftMap(_.toString())
-              .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
-              .flatMap(_.as[A].leftMap(_.toString()))
-          }
-          .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
-
-      override def write(option: Option[A]): Map[String, Json] =
-        option match
-          case Some(value) =>
-            val localized = Map(locale.code -> value.asJson).asJson
-            Map(fieldId -> localized)
-          case None => Map.empty
-
-      override def schema: List[Field] =
-        List(
-          Field(
-            fieldId,
-            fieldName,
-            required = false,
-            isDisabled,
-            fieldType,
-            defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
-          )
-        )
-
-  def withLocale(newLocale: Locale): FieldCodec[A] = new FieldCodec(
-    fieldId,
-    fieldType,
-    fieldName,
-    defaultValue,
-    newLocale,
-    isDisabled
-  ):
-    def control: Control                   = self.control
-    def settings: Set[FieldControlSetting] = self.settings
-
-  def disabled: FieldCodec[A] =
-    new FieldCodec(
-      fieldId,
-      fieldType,
-      fieldName,
-      defaultValue,
-      locale,
-      isDisabled = true
-    ):
-      def control: Control                   = self.control
-      def settings: Set[FieldControlSetting] = self.settings
-
-  protected def control: Control
-  protected def settings: Set[FieldControlSetting]
+import org.typelevel.twiddles.TwiddleSyntax
 
 sealed abstract case class EntryCodec[A](
     controls: Set[FieldControl],
@@ -116,7 +25,9 @@ sealed abstract case class EntryCodec[A](
   self =>
 
   def schema: List[Field]
+
   def read(input: Map[String, Json]): Either[String, A]
+
   def write(value: A): Map[String, Json]
 
   val editorInterface: EditorInterface = EditorInterface(
@@ -166,7 +77,7 @@ sealed abstract case class EntryCodec[A](
       override def write(value: A): Map[String, Json]                = self.write(value)
       override val schema: List[Field]                               = self.schema
 
-object EntryCodec:
+object EntryCodec extends TwiddleSyntax[EntryCodec]:
 
   def apply[A](using codec: EntryCodec[A]): EntryCodec[A] = codec
 
@@ -182,65 +93,254 @@ object EntryCodec:
         fa.product(fb)
       override def imap[A, B](fa: EntryCodec[A])(f: A => B)(g: B => A): EntryCodec[B] = fa.imap(f)(g)
 
+sealed abstract case class FieldCodec[A](
+    fieldId: String,
+    fieldType: FieldType,
+    fieldName: String,
+    defaultValue: Option[A],
+    control: Control,
+    settings: Set[FieldControlSetting],
+    locale: Locale = defaultLocale,
+    isDisabled: Boolean = false
+)(using encoder: Encoder[A], decoder: Decoder[A]):
+  self =>
+  def required: EntryCodec[A] =
+    new EntryCodec[A](Set(FieldControl(fieldId, control, settings))):
+      override def read(fields: Map[String, Json]): Either[String, A] =
+        fields
+          .get(fieldId)
+          .toRight(s"Field not found: $fieldId ($fieldType)")
+          .flatMap(_.as[Map[String, Json]].leftMap(_.toString()))
+          .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
+          .flatMap(_.as[A].leftMap(_.toString()))
+          .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
+
+      override def write(value: A): Map[String, Json] =
+        val localized = Map(locale.code -> value.asJson).asJson
+        Map(fieldId -> localized)
+
+      override def schema: List[Field] =
+        List(
+          Field(
+            fieldId,
+            fieldName,
+            required = true,
+            isDisabled,
+            fieldType,
+            defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
+          )
+        )
+
+  def optional: EntryCodec[Option[A]] =
+    new EntryCodec[Option[A]](Set(FieldControl(fieldId, control, settings))):
+      override def read(fields: Map[String, Json]): Either[String, Option[A]] =
+        fields
+          .get(fieldId)
+          .traverse[Either[String, *], A] {
+            _.as[Map[String, Json]]
+              .leftMap(_.toString())
+              .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
+              .flatMap(_.as[A].leftMap(_.toString()))
+          }
+          .leftMap(err => s"$err occurred when parsing $fieldId of type $fieldType")
+
+      override def write(option: Option[A]): Map[String, Json] =
+        option match
+          case Some(value) =>
+            val localized = Map(locale.code -> value.asJson).asJson
+            Map(fieldId -> localized)
+          case None => Map.empty
+
+      override def schema: List[Field] =
+        List(
+          Field(
+            fieldId,
+            fieldName,
+            required = false,
+            isDisabled,
+            fieldType,
+            defaultValue.map(value => Map(locale.code -> value.asJson)).getOrElse(Map.empty)
+          )
+        )
+
+  def withLocale(newLocale: Locale): FieldCodec[A] = new FieldCodec(
+    fieldId,
+    fieldType,
+    fieldName,
+    defaultValue,
+    control,
+    settings,
+    newLocale,
+    isDisabled
+  ) {}
+
+  def disabled: FieldCodec[A] =
+    new FieldCodec(
+      fieldId,
+      fieldType,
+      fieldName,
+      defaultValue,
+      control,
+      settings,
+      locale,
+      isDisabled = true
+    ) {}
+
 object FieldCodec:
   val defaultLocale: Locale = Locale.enGB
 
-  // def apply[A: Encoder: Decoder](
-  //     fieldId: String,
-  //     fieldType: FieldType,
-  //     fieldName: String,
-  //     defaultValue: Option[A]
-  // ): FieldCodec[A] = FieldCodec(fieldId, fieldType, fieldName, defaultLocale, isDisabled = false, defaultValue)
-
+  // TODO only allow validations in DSL in line with the docs: https://www.contentful.com/help/available-validations/
   trait Dsl:
 
     def longText(
         fieldId: String,
         fieldName: String,
         validations: Set[Validation] = Set.empty,
-        defaultValue: Option[String] = None
-    ): LongTextField =
-      new LongTextField(fieldId, fieldName, validations, defaultValue) {}
+        defaultValue: Option[String] = None,
+        textControl: LongTextControl = Control.BuiltIn.Markdown.longText
+    ): FieldCodec[String] =
+      new FieldCodec[String](
+        fieldId,
+        FieldType.Text(longText = true, validations),
+        fieldName,
+        defaultValue,
+        textControl.value,
+        textControl.settings ++ textControl.helpText.toSet
+      ) {}
 
     def text(
         fieldId: String,
         fieldName: String,
         validations: Set[Validation] = Set.empty,
-        defaultValue: Option[String] = None
-    ): TextField =
-      new TextField(fieldId, fieldName, validations, defaultValue) {}
+        defaultValue: Option[String] = None,
+        textControl: TextControl = Control.BuiltIn.SingleLine.text
+    ): FieldCodec[String] =
+      new FieldCodec[String](
+        fieldId,
+        FieldType.Text(longText = true, validations),
+        fieldName,
+        defaultValue,
+        textControl.value,
+        textControl.settings ++ textControl.helpText.toSet
+      ) {}
 
-    def boolean(fieldId: String, fieldName: String, defaultValue: Option[Boolean] = None): BoolField =
-      new BoolField(fieldId, fieldName, defaultValue) {}
+    def boolean(
+        fieldId: String,
+        fieldName: String,
+        defaultValue: Option[Boolean] = None,
+        boolControl: BoolControl = Control.BuiltIn.Boolean.boolean
+    ): FieldCodec[Boolean] =
+      new FieldCodec[Boolean](
+        fieldId,
+        FieldType.Boolean,
+        fieldName,
+        defaultValue,
+        boolControl.value,
+        boolControl.trueLabel.toSet ++ boolControl.falseLabel.toSet ++ boolControl.settings ++ boolControl.helpText.toSet
+      ) {}
 
-    def int(fieldId: String, fieldName: String, defaultValue: Option[Int] = None): IntField =
-      new IntField(fieldId, fieldName, defaultValue) {}
+    def int(
+        fieldId: String,
+        fieldName: String,
+        defaultValue: Option[Int] = None,
+        intControl: IntControl = Control.BuiltIn.NumberEditor.integer
+    ): FieldCodec[Int] =
+      new FieldCodec[Int](
+        fieldId,
+        FieldType.Integer,
+        fieldName,
+        defaultValue,
+        intControl.value,
+        intControl.stars.toSet ++ intControl.settings ++ intControl.helpText.toSet
+      ) {}
 
-    def decimal(fieldId: String, fieldName: String, defaultValue: Option[Double] = None): NumField =
-      new NumField(fieldId, fieldName, defaultValue) {}
+    def decimal(
+        fieldId: String,
+        fieldName: String,
+        defaultValue: Option[Double] = None,
+        numControl: NumControl = Control.BuiltIn.NumberEditor.number
+    ): FieldCodec[Double] =
+      new FieldCodec[Double](
+        fieldId,
+        FieldType.Number,
+        fieldName,
+        defaultValue,
+        numControl.value,
+        numControl.stars.toSet[FieldControlSetting] ++ numControl.settings ++ numControl.helpText.toSet
+      ) {}
 
-    def json[A: Encoder: Decoder](fieldId: String, fieldName: String): JsonField[A] =
-      new JsonField[A](fieldId, fieldName) {}
+    def json[A: Encoder: Decoder](
+        fieldId: String,
+        fieldName: String,
+        jsonControl: JsonControl = Control.BuiltIn.ObjectEditor.json
+    ): FieldCodec[A] =
+      new FieldCodec[A](
+        fieldId,
+        FieldType.Json,
+        fieldName,
+        None,
+        jsonControl.value,
+        jsonControl.settings ++ jsonControl.helpText.toSet
+      ) {}
 
     def dateTime(
         fieldId: String,
         fieldName: String,
-        defaultValue: Option[LocalDateTime] = None
-    ): DateTimeField[LocalDateTime] =
-      new DateTimeField[LocalDateTime](fieldId, fieldName, defaultValue) {}
+        defaultValue: Option[LocalDateTime] = None,
+        dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
+    ): FieldCodec[LocalDateTime] =
+      new FieldCodec[LocalDateTime](
+        fieldId,
+        FieldType.DateTime,
+        fieldName,
+        defaultValue,
+        dateTimeControl.value,
+        dateTimeControl.format.toSet ++ dateTimeControl.clockType.toSet ++ dateTimeControl.settings ++ dateTimeControl.helpText.toSet
+      ) {}
 
     def zonedDateTime(
         fieldId: String,
         fieldName: String,
-        defaultValue: Option[ZonedDateTime] = None
-    ): DateTimeField[ZonedDateTime] =
-      new DateTimeField[ZonedDateTime](fieldId, fieldName, defaultValue) {}.zoned
+        defaultValue: Option[ZonedDateTime] = None,
+        dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
+    ): FieldCodec[ZonedDateTime] =
+      new FieldCodec[ZonedDateTime](
+        fieldId,
+        FieldType.DateTime,
+        fieldName,
+        defaultValue,
+        dateTimeControl.zoned.value,
+        dateTimeControl.format.toSet ++ dateTimeControl.clockType.toSet ++ dateTimeControl.settings ++ dateTimeControl.helpText.toSet
+      ) {}
 
-    def location(fieldId: String, fieldName: String): LocationField =
-      new LocationField(fieldId, fieldName) {}
+    def location(
+        fieldId: String,
+        fieldName: String,
+        locControl: LocationControl = Control.BuiltIn.LocationEditor.location
+    ): FieldCodec[Location] =
+      new FieldCodec[Location](
+        fieldId,
+        FieldType.Location,
+        fieldName,
+        None,
+        locControl.value,
+        locControl.settings ++ locControl.helpText.toSet
+      ) {}
 
-    def richText(fieldId: String, fieldName: String, validations: Set[Validation] = Set.empty): RichTextField =
-      new RichTextField(fieldId, fieldName) {}
+    def richText(
+        fieldId: String,
+        fieldName: String,
+        validations: Set[Validation] = Set.empty,
+        richTextControl: RichTextControl = Control.BuiltIn.RichTextEditor.richText
+    ): FieldCodec[Node] =
+      new FieldCodec[Node](
+        fieldId,
+        FieldType.RichText(validations),
+        fieldName,
+        None,
+        richTextControl.value,
+        richTextControl.settings ++ richTextControl.helpText.toSet
+      ) {}
 
     // Contentful don't support text lists for "Text", only "Symbol" (short text): https://www.contentful.com/developers/docs/concepts/data-model/#array-fields
     def textList(
@@ -249,233 +349,61 @@ object FieldCodec:
         validations: Set[Validation] = Set.empty,
         minLength: Option[Int] = None,
         maxLength: Option[Int] = None,
-        defaultValue: Option[List[String]] = None
-    ): TextListField =
-      new TextListField(
+        defaultValue: Option[List[String]] = None,
+        textList: TextListControl = Control.BuiltIn.TagEditor.textList
+    ): FieldCodec[List[String]] =
+      new FieldCodec[List[String]](
         fieldId,
+        FieldType.Array(FieldType.Text(longText = false, validations), minLength, maxLength),
         fieldName,
-        validations,
-        minLength,
-        maxLength,
-        defaultValue
+        defaultValue,
+        textList.value,
+        textList.settings ++ textList.helpText.toSet
       ) {}
 
-    def media(fieldId: String, fieldName: String, mimeTypeGroup: Set[MimeTypeGroup]): AssetField =
-      new AssetField(fieldId, fieldName, mimeTypeGroup) {}
+    def media(
+        fieldId: String,
+        fieldName: String,
+        mimeTypeGroup: Set[MimeTypeGroup],
+        assetControl: AssetControl = Control.BuiltIn.AssetLinkEditor.asset
+    ): FieldCodec[Media] =
+      new FieldCodec[Media](
+        fieldId,
+        FieldType.Media(mimeTypeGroup),
+        fieldName,
+        None,
+        assetControl.value,
+        assetControl.showCreateEntity.toSet ++ assetControl.showLinkEntity.toSet ++ assetControl.settings ++ assetControl.helpText.toSet
+      ) {}
 
-    def reference(fieldId: String, fieldName: String, linkContentTypes: Set[ContentTypeId]): EntryField =
-      new EntryField(fieldId, fieldName, linkContentTypes) {}
+    def reference(
+        fieldId: String,
+        fieldName: String,
+        linkContentTypes: Set[ContentTypeId],
+        entryControl: EntryControl = Control.BuiltIn.EntryLinkEditor.entry
+    ): FieldCodec[Reference] =
+      new FieldCodec[Reference](
+        fieldId,
+        FieldType.Reference(linkContentTypes),
+        fieldName,
+        None,
+        entryControl.value,
+        entryControl.showCreateEntity.toSet ++ entryControl.showLinkEntity.toSet ++ entryControl.settings ++ entryControl.helpText.toList
+      ) {}
 
     def references(
         fieldId: String,
         fieldName: String,
         linkContentTypes: Set[ContentTypeId],
         minLength: Option[Int] = None,
-        maxLength: Option[Int] = None
-    ): EntriesField =
-      new EntriesField(
+        maxLength: Option[Int] = None,
+        entriesControl: EntriesControl = Control.BuiltIn.EntryLinksEditor.entries
+    ): FieldCodec[List[Reference]] =
+      new FieldCodec[List[Reference]](
         fieldId,
+        FieldType.Array(FieldType.Reference(linkContentTypes), minLength, maxLength),
         fieldName,
-        linkContentTypes,
-        minLength,
-        maxLength
+        None,
+        entriesControl.value,
+        entriesControl.showCreateEntity.toSet ++ entriesControl.showLinkEntity.toSet ++ entriesControl.bulkEditing.toSet ++ entriesControl.settings ++ entriesControl.helpText.toSet
       ) {}
-
-sealed abstract class BoolField(
-    fieldId: String,
-    fieldName: String,
-    defaultValue: Option[Boolean] = None,
-    boolControl: BoolControl = Control.BuiltIn.Boolean.boolean
-) extends FieldCodec[Boolean](fieldId, FieldType.Boolean, fieldName, defaultValue):
-
-  override val control: Control = boolControl.value
-
-  def withControl(c: BoolControl): BoolField =
-    new BoolField(fieldId, fieldName, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] =
-    boolControl.trueLabel.toSet ++ boolControl.falseLabel.toSet ++ boolControl.settings ++ boolControl.helpText.toSet
-
-sealed abstract class LongTextField(
-    fieldId: String,
-    fieldName: String,
-    validations: Set[Validation] = Set.empty,
-    defaultValue: Option[String] = None,
-    textControl: LongTextControl = Control.BuiltIn.Markdown.longText
-) extends FieldCodec[String](fieldId, FieldType.Text(longText = true, validations), fieldName, defaultValue):
-
-  override val control: Control = textControl.value
-
-  def withControl(c: LongTextControl): LongTextField =
-    new LongTextField(fieldId, fieldName, validations, defaultValue, c) {}
-
-  def settings: Set[FieldControlSetting] = textControl.settings ++ textControl.helpText.toSet
-
-sealed abstract class TextField(
-    fieldId: String,
-    fieldName: String,
-    validations: Set[Validation] = Set.empty,
-    defaultValue: Option[String] = None,
-    textControl: TextControl = Control.BuiltIn.SingleLine.text
-) extends FieldCodec[String](fieldId, FieldType.Text(longText = false, validations), fieldName, defaultValue):
-
-  override val control: Control = textControl.value
-
-  def withControl(c: TextControl): TextField =
-    new TextField(fieldId, fieldName, validations, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] = textControl.settings ++ textControl.helpText.toSet
-
-sealed abstract class IntField(
-    fieldId: String,
-    fieldName: String,
-    defaultValue: Option[Int] = None,
-    intControl: IntControl = Control.BuiltIn.NumberEditor.integer
-) extends FieldCodec[Int](fieldId, FieldType.Integer, fieldName, defaultValue):
-
-  override val control: Control = intControl.value
-
-  def withControl(c: IntControl): IntField =
-    new IntField(fieldId, fieldName, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] =
-    intControl.stars.toSet ++ intControl.settings ++ intControl.helpText.toSet
-
-sealed abstract class NumField(
-    fieldId: String,
-    fieldName: String,
-    defaultValue: Option[Double] = None,
-    numControl: NumControl = Control.BuiltIn.NumberEditor.number
-) extends FieldCodec[Double](fieldId, FieldType.Number, fieldName, defaultValue):
-
-  override val control: Control = numControl.value
-
-  def withControl(c: NumControl): NumField =
-    new NumField(fieldId, fieldName, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] =
-    numControl.stars.toSet[FieldControlSetting] ++ numControl.settings ++ numControl.helpText.toSet
-
-sealed abstract class JsonField[A: Encoder: Decoder](
-    fieldId: String,
-    fieldName: String,
-    jsonControl: JsonControl = Control.BuiltIn.ObjectEditor.json
-) extends FieldCodec[A](fieldId, FieldType.Json, fieldName, None):
-
-  override val control: Control = jsonControl.value
-
-  def withControl(c: JsonControl): JsonField[A] =
-    new JsonField(fieldId, fieldName, c) {}
-  def settings: Set[FieldControlSetting] = jsonControl.settings ++ jsonControl.helpText.toSet
-
-sealed abstract class DateTimeField[A: Encoder: Decoder](
-    fieldId: String,
-    fieldName: String,
-    defaultValue: Option[A] = None,
-    dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
-) extends FieldCodec[A](fieldId, FieldType.DateTime, fieldName, defaultValue):
-
-  override val control: Control = dateTimeControl.value
-
-  def withControl(c: DateTimeControl): DateTimeField[A] =
-    new DateTimeField(fieldId, fieldName, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] =
-    dateTimeControl.format.toSet ++ dateTimeControl.clockType.toSet ++ dateTimeControl.settings ++ dateTimeControl.helpText.toSet
-
-  def zoned = new DateTimeField(
-    fieldId,
-    fieldName,
-    defaultValue,
-    dateTimeControl.withFormat(FieldControlSetting.DatePicker.Format.TimeZ)
-  ) {}
-
-sealed abstract class LocationField(
-    fieldId: String,
-    fieldName: String,
-    locControl: LocationControl = Control.BuiltIn.LocationEditor.location
-) extends FieldCodec[Location](fieldId, FieldType.Location, fieldName, None):
-
-  override val control: Control = locControl.value
-
-  def withControl(c: LocationControl): LocationField =
-    new LocationField(fieldId, fieldName, c) {}
-  def settings: Set[FieldControlSetting] = locControl.settings ++ locControl.helpText.toSet
-
-sealed abstract class RichTextField(
-    fieldId: String,
-    fieldName: String,
-    validations: Set[Validation] = Set.empty,
-    richTextControl: RichTextControl = Control.BuiltIn.RichTextEditor.richText
-) extends FieldCodec[Node](fieldId, FieldType.RichText(validations), fieldName, None):
-
-  override val control: Control = richTextControl.value
-
-  def withControl(c: RichTextControl): RichTextField =
-    new RichTextField(fieldId, fieldName, validations, c) {}
-  def settings: Set[FieldControlSetting] = richTextControl.settings ++ richTextControl.helpText.toSet
-
-sealed abstract class TextListField(
-    fieldId: String,
-    fieldName: String,
-    validations: Set[Validation] = Set.empty,
-    minLength: Option[Int] = None,
-    maxLength: Option[Int] = None,
-    defaultValue: Option[List[String]] = None,
-    textList: TextListControl = Control.BuiltIn.TagEditor.textList
-) extends FieldCodec[List[String]](
-      fieldId,
-      FieldType.Array(FieldType.Text(longText = false, validations), minLength, maxLength),
-      fieldName,
-      defaultValue
-    ):
-
-  override val control: Control = textList.value
-
-  def withControl(c: TextListControl): TextListField =
-    new TextListField(fieldId, fieldName, validations, minLength, maxLength, defaultValue, c) {}
-  def settings: Set[FieldControlSetting] = textList.settings ++ textList.helpText.toSet
-
-sealed abstract class AssetField(
-    fieldId: String,
-    fieldName: String,
-    mimeTypeGroup: Set[MimeTypeGroup],
-    assetControl: AssetControl = Control.BuiltIn.AssetLinkEditor.asset
-) extends FieldCodec[Media](fieldId, FieldType.Media(mimeTypeGroup), fieldName, None):
-
-  override val control: Control = assetControl.value
-
-  def withControl(c: AssetControl): AssetField =
-    new AssetField(fieldId, fieldName, mimeTypeGroup, c) {}
-  def settings: Set[FieldControlSetting] =
-    assetControl.showCreateEntity.toSet ++ assetControl.showLinkEntity.toSet ++ assetControl.settings ++ assetControl.helpText.toSet
-
-sealed abstract class EntryField(
-    fieldId: String,
-    fieldName: String,
-    linkContentTypes: Set[ContentTypeId],
-    entryControl: EntryControl = Control.BuiltIn.EntryLinkEditor.entry
-) extends FieldCodec[Reference](fieldId, FieldType.Reference(linkContentTypes), fieldName, None):
-
-  override val control: Control = entryControl.value
-
-  def withControl(c: EntryControl): EntryField =
-    new EntryField(fieldId, fieldName, linkContentTypes, c) {}
-  def settings: Set[FieldControlSetting] =
-    entryControl.showCreateEntity.toSet ++ entryControl.showLinkEntity.toSet ++ entryControl.settings ++ entryControl.helpText.toList
-
-sealed abstract class EntriesField(
-    fieldId: String,
-    fieldName: String,
-    linkContentTypes: Set[ContentTypeId],
-    minLength: Option[Int] = None,
-    maxLength: Option[Int] = None,
-    entriesControl: EntriesControl = Control.BuiltIn.EntryLinksEditor.entries
-) extends FieldCodec[List[Reference]](
-      fieldId,
-      FieldType.Array(FieldType.Reference(linkContentTypes), minLength, maxLength),
-      fieldName,
-      None
-    ):
-
-  override val control: Control = entriesControl.value
-
-  def withControl(c: EntriesControl): EntriesField =
-    new EntriesField(fieldId, fieldName, linkContentTypes, minLength, maxLength, c) {}
-  def settings: Set[FieldControlSetting] =
-    entriesControl.showCreateEntity.toSet ++ entriesControl.showLinkEntity.toSet ++ entriesControl.bulkEditing.toSet ++ entriesControl.settings ++ entriesControl.helpText.toSet
