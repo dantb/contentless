@@ -136,12 +136,39 @@ class EntryCodecSpec extends ScalaCheckSuite:
     }
   }
 
-  property("media field") {
+  property("asset field") {
     forAll { (id: String, name: String, disabled: Boolean, mimeTypes: Set[MimeTypeGroup]) =>
-      val fieldCodec        = media(id, name, mimeTypes)
+      val fieldCodec        = asset(id, name, mimeTypes)
       val expectedFieldType = FieldType.Media(mimeTypes)
 
       assertField[Media](fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("assets field") {
+    forAll { (id: String, name: String, disabled: Boolean, mimeTypes: Set[MimeTypeGroup]) =>
+      val fieldCodec        = assets(id, name, mimeTypes)
+      val expectedFieldType = FieldType.Array(FieldType.Media(mimeTypes), None, None)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("entry field") {
+    forAll { (id: String, name: String, disabled: Boolean, contentTypes: Set[ContentTypeId]) =>
+      val fieldCodec        = entry(id, name, contentTypes)
+      val expectedFieldType = FieldType.Reference(contentTypes)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+    }
+  }
+
+  property("entries field") {
+    forAll { (id: String, name: String, disabled: Boolean, contentTypes: Set[ContentTypeId]) =>
+      val fieldCodec        = entries(id, name, contentTypes)
+      val expectedFieldType = FieldType.Array(FieldType.Reference(contentTypes), None, None)
+
+      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
     }
   }
 
