@@ -392,12 +392,12 @@ object implicits:
     ).mapN(WebhookDefinition.apply)
 
   implicit def fieldTypeEncoder[A <: FieldType]: Encoder[A] = {
-    case t @ FieldType.Text(true, _, _, _, _) =>
+    case t @ FieldType.Text(true, _, _, _) =>
       obj(
         "type"        -> "Text".asJson,
         "validations" -> t.validations.asJson
       )
-    case t @ FieldType.Text(false, _, _, _, _) =>
+    case t @ FieldType.Text(false, _, _, _) =>
       obj(
         "type"        -> "Symbol".asJson,
         "validations" -> t.validations.asJson
@@ -441,15 +441,11 @@ object implicits:
         "linkType"    -> "Entry".asJson,
         "validations" -> Json.arr(obj("linkContentType" -> linkContentTypes.asJson))
       )
-    case FieldType.Array(itemType, minLength, maxLength) =>
-      val validations =
-        (minLength, maxLength) match
-          case (None, None) => List.empty[Validation]
-          case _            => List[Validation](Validation.Size(minLength, maxLength, None))
+    case a @ FieldType.Array(itemType, _) =>
       obj(
         "type"        -> "Array".asJson,
         "items"       -> itemType.asJson(fieldTypeEncoder),
-        "validations" -> validations.asJson
+        "validations" -> a.validations.asJson
       )
   }
 
@@ -484,19 +480,8 @@ object implicits:
         }
 
       case "Array" =>
-        (
-          c.downField("items").as[FieldType](fieldTypeDecoder),
-          c
-            .downField("validations")
-            .downArray
-            .downField("size")
-            .get[Option[Int]]("min"),
-          c
-            .downField("validations")
-            .downArray
-            .downField("size")
-            .get[Option[Int]]("max")
-        ).mapN(FieldType.Array.apply)
+        val size = c.downField("validations").downArray.as[Validation.Size]
+        c.downField("items").as[FieldType](fieldTypeDecoder).map(items => FieldType.Array(items, size.toOption))
     }
 
   given fieldEncoder: Encoder[Field] = field =>
@@ -695,8 +680,8 @@ object implicits:
 
   given validationDecoder: Decoder[Validation] = c =>
     c.downField("in").success.map(_.as[NonEmptyList[String]].map[Validation](Validation.ContainedIn.apply)) orElse
-      c.downField("in").success.map(_.as[NonEmptyList[Int]].map[Validation](Validation.ContainedIn.apply)) orElse
-      c.downField("in").success.map(_.as[NonEmptyList[Double]].map[Validation](Validation.ContainedIn.apply)) orElse
+      c.downField("in").success.map(_.as[NonEmptyList[Int]].map[Validation](Validation.ContainedInInt.apply)) orElse
+      c.downField("in").success.map(_.as[NonEmptyList[Double]].map[Validation](Validation.ContainedInDecimal.apply)) orElse
       c.downField("enabledMarks").success.map(_.as[Set[String]].map[Validation](Validation.RichTextMarks.apply)) orElse
       c
         .downField("enabledNodeTypes")
@@ -723,8 +708,12 @@ object implicits:
     yield Validation.LinkContentType(types, message)
 
   implicit def validationEncoder[A <: Validation]: Encoder[A] = {
-    case c @ Validation.ContainedIn(allowedValues) =>
-      obj("in" -> c.asJson)
+    case Validation.ContainedIn(allowedValues) =>
+      obj("in" -> allowedValues.asJson)
+    case Validation.ContainedInInt(allowedValues) =>
+      obj("in" -> allowedValues.asJson)
+    case Validation.ContainedInDecimal(allowedValues) =>
+      obj("in" -> allowedValues.asJson)
     case Validation.RichTextMarks(enabledMarks) =>
       obj("enabledMarks" -> enabledMarks.asJson)
     case Validation.RichTextNodeTypes(enabledNodeTypes) =>
