@@ -3,11 +3,13 @@ package io.dantb.contentless.codecs
 import java.time.{LocalDateTime, ZonedDateTime}
 
 import cats.InvariantMonoidal
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.*
 import io.dantb.contentless.*
 import io.dantb.contentless.RichText.Node
+import io.dantb.contentless.Validation.Regexp
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.Control.*
 import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
@@ -195,13 +197,16 @@ object FieldCodec:
     def longText(
         fieldId: String,
         fieldName: String,
-        validations: Set[Validation] = Set.empty,
         defaultValue: Option[String] = None,
+        minChars: Option[Int] = None,
+        maxChars: Option[Int] = None,
+        allowedValues: Option[NonEmptyList[String]] = None,
+        matchesRegex: Option[Regexp] = None,
         textControl: LongTextControl = Control.BuiltIn.Markdown.longText
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = true, validations),
+        FieldType.Text(longText = true, minChars, maxChars, allowedValues, matchesRegex),
         fieldName,
         defaultValue,
         textControl.value,
@@ -211,13 +216,16 @@ object FieldCodec:
     def text(
         fieldId: String,
         fieldName: String,
-        validations: Set[Validation] = Set.empty,
         defaultValue: Option[String] = None,
+        minChars: Option[Int] = None,
+        maxChars: Option[Int] = None,
+        allowedValues: Option[NonEmptyList[String]] = None,
+        matchesRegex: Option[Regexp] = None,
         textControl: TextControl = Control.BuiltIn.SingleLine.text
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = false, validations),
+        FieldType.Text(longText = false, minChars, maxChars, allowedValues, matchesRegex),
         fieldName,
         defaultValue,
         textControl.value,
@@ -346,19 +354,23 @@ object FieldCodec:
     def textList(
         fieldId: String,
         fieldName: String,
-        validations: Set[Validation] = Set.empty,
+        defaultValue: Option[List[String]] = None,
         minLength: Option[Int] = None,
         maxLength: Option[Int] = None,
-        defaultValue: Option[List[String]] = None,
-        textList: TextListControl = Control.BuiltIn.TagEditor.textList
+        minChars: Option[Int] = None,
+        maxChars: Option[Int] = None,
+        allowedValues: Option[NonEmptyList[String]] = None,
+        matchesRegex: Option[Regexp] = None,
+        textListControl: TextListControl = Control.BuiltIn.TagEditor.textList
     ): FieldCodec[List[String]] =
       new FieldCodec[List[String]](
         fieldId,
-        FieldType.Array(FieldType.Text(longText = false, validations), minLength, maxLength),
+        FieldType
+          .Array(FieldType.Text(longText = false, minChars, maxChars, allowedValues, matchesRegex), minLength, maxLength),
         fieldName,
         defaultValue,
-        textList.value,
-        textList.settings ++ textList.helpText.toSet
+        textListControl.value,
+        textListControl.settings ++ textListControl.helpText.toSet
       ) {}
 
     def asset(

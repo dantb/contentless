@@ -42,7 +42,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("text field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
       val fieldCodec        = text(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = false, Set.empty)
+      val expectedFieldType = FieldType.Text(longText = false, None, None, None, None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -51,7 +51,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("long text field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
       val fieldCodec        = longText(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = true, Set.empty)
+      val expectedFieldType = FieldType.Text(longText = true, None, None, None, None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -130,7 +130,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("text list field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[List[String]]) =>
       val fieldCodec        = textList(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, Set.empty), None, None)
+      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, None, None, None, None), None, None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
