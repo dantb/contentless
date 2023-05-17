@@ -20,12 +20,15 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
+import cats.data.NonEmptyList
 import io.circe.Json
 import io.circe.syntax.*
 import io.dantb.contentless.{ContentModel, ContentTypeId, Field, FieldType, Media, MimeTypeGroup}
 import io.dantb.contentless.arbitrary.given
+import io.dantb.contentless.codecs.FieldCodec.DefaultZone
 import io.dantb.contentless.codecs.implicits.given
 import io.dantb.contentless.dsl.*
+import io.dantb.contentless.instances.given
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.*
 
@@ -58,54 +61,72 @@ class EntryCodecSpec extends ScalaCheckSuite:
   }
 
   property("int field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[Int]) =>
-      val fieldCodec        = int(id, name, default)
-      val expectedFieldType = FieldType.Integer
+    forAll {
+      (id: String, name: String, disabled: Boolean, default: Option[Int], allowedValues: Option[NonEmptyList[Int]]) =>
+        val fieldCodec        = int(id, name, default, allowedValues)
+        val expectedFieldType = FieldType.Integer(allowedValues)
 
-      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+        assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
   }
 
   property("decimal field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[Double]) =>
-      val fieldCodec        = decimal(id, name, default)
-      val expectedFieldType = FieldType.Number
+    forAll {
+      (id: String, name: String, disabled: Boolean, default: Option[Double], allowedValues: Option[NonEmptyList[Double]]) =>
+        val fieldCodec        = decimal(id, name, default, allowedValues)
+        val expectedFieldType = FieldType.Number(allowedValues)
 
-      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+        assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
   }
 
   property("json field") {
-    forAll { (id: String, name: String, disabled: Boolean) =>
-      val fieldCodec        = json[Int](id, name)
-      val expectedFieldType = FieldType.Json
+    forAll { (id: String, name: String, disabled: Boolean, minProperties: Option[Int], maxProperties: Option[Int]) =>
+      val fieldCodec        = json[Int](id, name, minProperties, maxProperties)
+      val expectedFieldType = FieldType.Json(minProperties, maxProperties)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
     }
   }
 
   property("local date time field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[LocalDateTime]) =>
-      val fieldCodec        = dateTime(id, name, default)
-      val expectedFieldType = FieldType.DateTime
+    forAll {
+      (
+          id: String,
+          name: String,
+          disabled: Boolean,
+          default: Option[LocalDateTime],
+          minDate: Option[LocalDateTime],
+          maxDate: Option[LocalDateTime]
+      ) =>
+        val fieldCodec        = dateTime(id, name, default, minDate, maxDate)
+        val expectedFieldType = FieldType.DateTime(minDate.map(_.atZone(DefaultZone)), maxDate.map(_.atZone(DefaultZone)))
 
-      assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
+        assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
   }
 
   property("zoned date time field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[ZonedDateTime]) =>
-      val fieldCodec        = zonedDateTime(id, name, default)
-      val expectedFieldType = FieldType.DateTime
-      val formattedTruncatedDefault =
-        default.map(x =>
-          x.withZoneSameInstant(ZoneId.of("UTC"))
-            .truncatedTo(ChronoUnit.MILLIS)
-            .format(DateTimeFormatter.ISO_INSTANT)
-            .asJson
-        )
+    forAll {
+      (
+          id: String,
+          name: String,
+          disabled: Boolean,
+          default: Option[ZonedDateTime],
+          minDate: Option[ZonedDateTime],
+          maxDate: Option[ZonedDateTime]
+      ) =>
+        val fieldCodec        = zonedDateTime(id, name, default, minDate, maxDate)
+        val expectedFieldType = FieldType.DateTime(minDate, maxDate)
+        val formattedTruncatedDefault =
+          default.map(x =>
+            x.withZoneSameInstant(ZoneId.of("UTC"))
+              .truncatedTo(ChronoUnit.MILLIS)
+              .format(DateTimeFormatter.ISO_INSTANT)
+              .asJson
+          )
 
-      assertField(fieldCodec, id, name, disabled, expectedFieldType, formattedTruncatedDefault)
+        assertField(fieldCodec, id, name, disabled, expectedFieldType, formattedTruncatedDefault)
     }
   }
 
@@ -182,7 +203,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   ): Unit =
     val fieldCodecWithDisabled = withDisabled(fieldCodec, disabled)
     val expectedDefaultValue =
-      expectedDefaultJson.map(d => Map(FieldCodec.defaultLocale.code -> d.asJson)).getOrElse(Map.empty)
+      expectedDefaultJson.map(d => Map(FieldCodec.DefaultLocale.code -> d.asJson)).getOrElse(Map.empty)
     val expected = Field(id, name, required = true, disabled = disabled, expectedFieldType, expectedDefaultValue)
 
     assertEquals(

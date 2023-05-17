@@ -1,10 +1,13 @@
 package io.dantb.contentless
 
+import java.time.ZonedDateTime
+
 import cats.{Eq, Show}
 import cats.data.NonEmptyList
 import cats.syntax.all.*
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import io.dantb.contentless.codecs.EntryCodec
+import io.dantb.contentless.instances.given
 
 import scala.util.matching.Regex
 
@@ -72,7 +75,8 @@ sealed trait Validation extends Product with Serializable
 object Validation:
   given eq: Eq[Validation] = Eq.fromUniversalEquals
 
-  final case class ContainedIn(allowedValues: NonEmptyList[String]) extends Validation
+  final case class ContainedIn[A: Encoder](allowedValues: NonEmptyList[A]) extends Validation:
+    def asJson: Json = summon[Encoder[NonEmptyList[A]]](allowedValues)
 
   final case class RichTextNodes(
       assetHyperlinkSize: Option[Size],
@@ -92,6 +96,7 @@ object Validation:
   final case class RichTextMarks(allowedValues: Set[String])                                  extends Validation
   final case class RichTextNodeTypes(allowedValues: Set[String])                              extends Validation
   final case class Size(min: Option[Int], max: Option[Int], message: Option[String])          extends Validation
+  final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime])          extends Validation
   case object Unique                                                                          extends Validation
 
   enum Regexp(val underlying: Regex) extends Validation:

@@ -1,5 +1,7 @@
 package io.dantb.contentless
 
+import java.time.ZonedDateTime
+
 import cats.Eq
 import cats.data.NonEmptyList
 import cats.syntax.all.*
@@ -35,17 +37,33 @@ object FieldType:
   object Text:
     def fromValidations(longText: Boolean, vs: Set[Validation]): Text =
       val size          = vs.collectFirst { case s: Validation.Size => s }
-      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn => s }.map(_.allowedValues)
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[String] => s }.map(_.allowedValues)
       val matchesRegex  = vs.collectFirst { case s: Validation.Regexp => s }
       Text(longText, size.flatMap(_.min), size.flatMap(_.max), allowedValues, matchesRegex)
 
-  final case class Media(mimeTypeGroup: Set[MimeTypeGroup])                                   extends FieldType
-  final case class Reference(linkContentTypes: Set[ContentTypeId])                            extends FieldType
+  final case class Media(mimeTypeGroup: Set[MimeTypeGroup]) extends FieldType
+
+  final case class Reference(linkContentTypes: Set[ContentTypeId]) extends FieldType
+
   final case class Array(itemType: FieldType, minLength: Option[Int], maxLength: Option[Int]) extends FieldType
-  final case class RichText(validations: Set[Validation])                                     extends FieldType
-  case object Integer                                                                         extends FieldType
-  case object Number                                                                          extends FieldType
-  case object Boolean                                                                         extends FieldType
+
+  final case class RichText(validations: Set[Validation]) extends FieldType
+
+  final case class Integer(allowedValues: Option[NonEmptyList[Int]]) extends FieldType:
+    def validations: Set[Validation] = allowedValues.map(Validation.ContainedIn(_)).toSet
+  object Integer:
+    def fromValidations(vs: Set[Validation]): Integer =
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[Int] => s }.map(_.allowedValues)
+      Integer(allowedValues)
+
+  final case class Number(allowedValues: Option[NonEmptyList[Double]]) extends FieldType:
+    def validations: Set[Validation] = allowedValues.map(Validation.ContainedIn(_)).toSet
+  object Number:
+    def fromValidations(vs: Set[Validation]): Number =
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[Double] => s }.map(_.allowedValues)
+      Number(allowedValues)
+
+  case object Boolean extends FieldType
 
   final case class Json(minProperties: Option[Int], maxProperties: Option[Int]) extends FieldType:
     def validations: Set[Validation] = Set(Validation.Size(minProperties, maxProperties, None))
@@ -55,5 +73,11 @@ object FieldType:
       val size = vs.collectFirst { case s: Validation.Size => s }
       Json(size.flatMap(_.min), size.flatMap(_.max))
 
-  case object DateTime extends FieldType
+  final case class DateTime(minDate: Option[ZonedDateTime], maxDate: Option[ZonedDateTime]) extends FieldType:
+    def validations: Set[Validation] = Set(Validation.DateRange(minDate, maxDate))
+  object DateTime:
+    def fromValidations(vs: Set[Validation]): DateTime =
+      val size = vs.collectFirst { case s: Validation.DateRange => s }
+      DateTime(size.flatMap(_.min), size.flatMap(_.max))
+
   case object Location extends FieldType

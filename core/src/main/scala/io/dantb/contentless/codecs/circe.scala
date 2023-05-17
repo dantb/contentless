@@ -1,6 +1,6 @@
 package io.dantb.contentless.codecs
 
-import java.time.{ZoneId, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -14,6 +14,7 @@ import io.dantb.contentless.Entry.{Authors, Timestamps}
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.codecs.EntryCodec
+import io.dantb.contentless.codecs.FieldCodec.DefaultZone
 import io.dantb.contentless.webhook.*
 
 object implicits:
@@ -88,7 +89,7 @@ object implicits:
   given zonedDateTimeEncoder: Encoder[ZonedDateTime] = zdt =>
     Json.fromString(
       zdt
-        .withZoneSameInstant(ZoneId.of("UTC"))
+        .withZoneSameInstant(DefaultZone)
         .truncatedTo(ChronoUnit.MILLIS)
         .format(DateTimeFormatter.ISO_INSTANT)
     )
@@ -412,15 +413,27 @@ object implicits:
         "linkType"    -> "Asset".asJson,
         "validations" -> Json.arr(obj("linkMimetypeGroup" -> mimeTypeGroup.asJson))
       )
-    case FieldType.Integer => obj("type" -> "Integer".asJson)
-    case FieldType.Number  => obj("type" -> "Number".asJson)
+    case i: FieldType.Integer =>
+      obj(
+        "type"        -> "Integer".asJson,
+        "validations" -> i.validations.asJson
+      )
+    case n: FieldType.Number =>
+      obj(
+        "type"        -> "Number".asJson,
+        "validations" -> n.validations.asJson
+      )
     case FieldType.Boolean => obj("type" -> "Boolean".asJson)
     case j: FieldType.Json =>
       obj(
         "type"        -> "Object".asJson,
         "validations" -> j.validations.asJson
       )
-    case FieldType.DateTime => obj("type" -> "Date".asJson)
+    case d: FieldType.DateTime =>
+      obj(
+        "type"        -> "Date".asJson,
+        "validations" -> d.validations.asJson
+      )
     case FieldType.Location => obj("type" -> "Location".asJson)
     case FieldType.Reference(linkContentTypes) =>
       obj(
@@ -444,11 +457,11 @@ object implicits:
     c.downField("type").as[String].flatMap {
       case "Text"     => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(true, _))
       case "Symbol"   => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(false, _))
-      case "Integer"  => FieldType.Integer.asRight
-      case "Number"   => FieldType.Number.asRight
+      case "Integer"  => c.downField("validations").as[Set[Validation]].map(FieldType.Integer.fromValidations(_))
+      case "Number"   => c.downField("validations").as[Set[Validation]].map(FieldType.Number.fromValidations(_))
       case "Boolean"  => FieldType.Boolean.asRight
       case "Object"   => c.downField("validations").as[Set[Validation]].map(FieldType.Json.fromValidations(_))
-      case "Date"     => FieldType.DateTime.asRight
+      case "Date"     => c.downField("validations").as[Set[Validation]].map(FieldType.DateTime.fromValidations(_))
       case "Location" => FieldType.Location.asRight
       case "RichText" => c.downField("validations").as[Set[Validation]].map[FieldType](FieldType.RichText.apply)
       case "Link" =>
@@ -682,6 +695,8 @@ object implicits:
 
   given validationDecoder: Decoder[Validation] = c =>
     c.downField("in").success.map(_.as[NonEmptyList[String]].map[Validation](Validation.ContainedIn.apply)) orElse
+      c.downField("in").success.map(_.as[NonEmptyList[Int]].map[Validation](Validation.ContainedIn.apply)) orElse
+      c.downField("in").success.map(_.as[NonEmptyList[Double]].map[Validation](Validation.ContainedIn.apply)) orElse
       c.downField("enabledMarks").success.map(_.as[Set[String]].map[Validation](Validation.RichTextMarks.apply)) orElse
       c
         .downField("enabledNodeTypes")
@@ -708,8 +723,8 @@ object implicits:
     yield Validation.LinkContentType(types, message)
 
   implicit def validationEncoder[A <: Validation]: Encoder[A] = {
-    case Validation.ContainedIn(allowedValues) =>
-      obj("in" -> allowedValues.asJson)
+    case c @ Validation.ContainedIn(allowedValues) =>
+      obj("in" -> c.asJson)
     case Validation.RichTextMarks(enabledMarks) =>
       obj("enabledMarks" -> enabledMarks.asJson)
     case Validation.RichTextNodeTypes(enabledNodeTypes) =>
@@ -729,6 +744,13 @@ object implicits:
           "max" -> max.asJson
         ),
         "message" -> message.asJson
+      )
+    case Validation.DateRange(min, max) =>
+      obj(
+        "dateRange" -> obj(
+          "min" -> min.asJson,
+          "max" -> max.asJson
+        )
       )
     case Validation.LinkContentType(allowedContentTypes, message) =>
       obj(
