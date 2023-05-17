@@ -280,11 +280,13 @@ object FieldCodec:
     def json[A: Encoder: Decoder](
         fieldId: String,
         fieldName: String,
+        minProperties: Option[Int] = None,
+        maxProperties: Option[Int] = None,
         jsonControl: JsonControl = Control.BuiltIn.ObjectEditor.json
     ): FieldCodec[A] =
       new FieldCodec[A](
         fieldId,
-        FieldType.Json,
+        FieldType.Json(minProperties, maxProperties),
         fieldName,
         None,
         jsonControl.value,

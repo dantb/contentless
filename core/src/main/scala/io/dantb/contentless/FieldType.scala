@@ -38,6 +38,7 @@ object FieldType:
       val allowedValues = vs.collectFirst { case s: Validation.ContainedIn => s }.map(_.allowedValues)
       val matchesRegex  = vs.collectFirst { case s: Validation.Regexp => s }
       Text(longText, size.flatMap(_.min), size.flatMap(_.max), allowedValues, matchesRegex)
+
   final case class Media(mimeTypeGroup: Set[MimeTypeGroup])                                   extends FieldType
   final case class Reference(linkContentTypes: Set[ContentTypeId])                            extends FieldType
   final case class Array(itemType: FieldType, minLength: Option[Int], maxLength: Option[Int]) extends FieldType
@@ -45,6 +46,14 @@ object FieldType:
   case object Integer                                                                         extends FieldType
   case object Number                                                                          extends FieldType
   case object Boolean                                                                         extends FieldType
-  case object Json                                                                            extends FieldType
-  case object DateTime                                                                        extends FieldType
-  case object Location                                                                        extends FieldType
+
+  final case class Json(minProperties: Option[Int], maxProperties: Option[Int]) extends FieldType:
+    def validations: Set[Validation] = Set(Validation.Size(minProperties, maxProperties, None))
+
+  object Json:
+    def fromValidations(vs: Set[Validation]): Json =
+      val size = vs.collectFirst { case s: Validation.Size => s }
+      Json(size.flatMap(_.min), size.flatMap(_.max))
+
+  case object DateTime extends FieldType
+  case object Location extends FieldType
