@@ -1,6 +1,6 @@
 package io.dantb.contentless.codecs
 
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import cats.InvariantMonoidal
 import cats.data.NonEmptyList
@@ -102,7 +102,7 @@ sealed abstract case class FieldCodec[A](
     defaultValue: Option[A],
     control: Control,
     settings: Set[FieldControlSetting],
-    locale: Locale = defaultLocale,
+    locale: Locale = DefaultLocale,
     isDisabled: Boolean = false
 )(using encoder: Encoder[A], decoder: Decoder[A]):
   self =>
@@ -189,9 +189,11 @@ sealed abstract case class FieldCodec[A](
     ) {}
 
 object FieldCodec:
-  val defaultLocale: Locale = Locale.enGB
+  val DefaultLocale: Locale = Locale.enGB
+  val DefaultZone           = ZoneId.of("UTC")
 
   // TODO only allow validations in DSL in line with the docs: https://www.contentful.com/help/available-validations/
+  // TODO put the above link in docs as source of truth
   trait Dsl:
 
     def longText(
@@ -251,11 +253,12 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[Int] = None,
+        allowedValues: Option[NonEmptyList[Int]] = None,
         intControl: IntControl = Control.BuiltIn.NumberEditor.integer
     ): FieldCodec[Int] =
       new FieldCodec[Int](
         fieldId,
-        FieldType.Integer,
+        FieldType.Integer(allowedValues),
         fieldName,
         defaultValue,
         intControl.value,
@@ -266,11 +269,12 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[Double] = None,
+        allowedValues: Option[NonEmptyList[Double]] = None,
         numControl: NumControl = Control.BuiltIn.NumberEditor.number
     ): FieldCodec[Double] =
       new FieldCodec[Double](
         fieldId,
-        FieldType.Number,
+        FieldType.Number(allowedValues),
         fieldName,
         defaultValue,
         numControl.value,
@@ -297,11 +301,13 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[LocalDateTime] = None,
+        minDate: Option[LocalDateTime] = None,
+        maxDate: Option[LocalDateTime] = None,
         dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
     ): FieldCodec[LocalDateTime] =
       new FieldCodec[LocalDateTime](
         fieldId,
-        FieldType.DateTime,
+        FieldType.DateTime(minDate.map(_.atZone(DefaultZone)), maxDate.map(_.atZone(DefaultZone))),
         fieldName,
         defaultValue,
         dateTimeControl.value,
@@ -312,11 +318,13 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[ZonedDateTime] = None,
+        minDate: Option[ZonedDateTime] = None,
+        maxDate: Option[ZonedDateTime] = None,
         dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
     ): FieldCodec[ZonedDateTime] =
       new FieldCodec[ZonedDateTime](
         fieldId,
-        FieldType.DateTime,
+        FieldType.DateTime(minDate, maxDate),
         fieldName,
         defaultValue,
         dateTimeControl.zoned.value,
