@@ -1,9 +1,12 @@
 package io.dantb.contentless
 
 import cats.{Eq, Show}
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import io.circe.Json
 import io.dantb.contentless.codecs.EntryCodec
+
+import scala.util.matching.Regex
 
 /** One of the core entities in Contentful - represents the core information for a [[ContentType]].
   *
@@ -69,7 +72,7 @@ sealed trait Validation extends Product with Serializable
 object Validation:
   given eq: Eq[Validation] = Eq.fromUniversalEquals
 
-  final case class ContainedIn(allowedValues: List[String]) extends Validation
+  final case class ContainedIn(allowedValues: NonEmptyList[String]) extends Validation
 
   final case class RichTextNodes(
       assetHyperlinkSize: Option[Size],
@@ -91,15 +94,35 @@ object Validation:
   final case class Size(min: Option[Int], max: Option[Int], message: Option[String])          extends Validation
   case object Unique                                                                          extends Validation
 
-  // equality defers to underlying regex, to allow custom regex subtypes for convenience without breaking equality
-  sealed abstract case class Regexp(regexp: String) extends Validation:
-    override def equals(obj: Any): Boolean = obj.isInstanceOf[Regexp] && obj.asInstanceOf[Regexp].regexp == regexp
-    override def hashCode(): Int           = regexp.hashCode
-  object ValidUrl extends Regexp(Regexp.validUrlRegexp)
-  object Regexp:
-    val validUrlRegexp = "^(ftp|http|https):\\/\\/(\\w+:{0,1}\\w*@)?(\\S+)(:[0-9]+)?(\\/|\\/([\\w#!:.?+=&%@!\\-\\/]))?$"
+  enum Regexp(val underlying: Regex) extends Validation:
+    case Url
+        extends Regexp("^(ftp|http|https):\\/\\/(\\w+:{0,1}\\w*@)?(\\S+)(:[0-9]+)?(\\/|\\/([\\w#!:.?+=&%@!\\-\\/]))?$".r)
+    case Email                  extends Regexp("^\\w[\\w.-]*@([\\w-]+\\.)+[\\w-]+$".r)
+    case Slug                   extends Regexp("^[a-z0-9]+(?:-[a-z0-9]+)*$".r)
+    case DateUS                 extends Regexp("^(0?[1-9]|1[012])[- /.](0?[1-9]|[12][0-9]|3[01])[- /.](19|20)?\\d\\d$".r)
+    case DateEurope             extends Regexp("^(0?[1-9]|[12][0-9]|3[01])[- /.](0?[1-9]|1[012])[- /.](19|20)?\\d\\d$".r)
+    case Time12H                extends Regexp("^(0?[1-9]|1[012]):[0-5][0-9](:[0-5][0-9])?\\s*[aApP][mM]$".r)
+    case Time24H                extends Regexp("^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$".r)
+    case PhoneNumUS             extends Regexp("^\\d[ -.]?\\(?\\d\\d\\d\\)?[ -.]?\\d\\d\\d[ -.]?\\d\\d\\d\\d$".r)
+    case ZipCodeUS              extends Regexp("^\\d{5}$|^\\d{5}-\\d{4}$}".r)
+    case Custom(pattern: Regex) extends Regexp(pattern)
 
-    def apply(str: String): Regexp = new Regexp(str) {}
+  object Regexp:
+    def unapply(r: Regexp): Some[Regex] = Some(r.underlying)
+
+    given Eq[Regexp] = Eq.fromUniversalEquals
+
+    def of(raw: String): Regexp =
+      if raw == Regexp.Url.underlying.toString() then Regexp.Url
+      else if raw == Regexp.Email.underlying.toString() then Regexp.Email
+      else if raw == Regexp.Slug.underlying.toString() then Regexp.Slug
+      else if raw == Regexp.DateUS.underlying.toString() then Regexp.DateUS
+      else if raw == Regexp.DateEurope.underlying.toString() then Regexp.DateEurope
+      else if raw == Regexp.Time12H.underlying.toString() then Regexp.Time12H
+      else if raw == Regexp.Time24H.underlying.toString() then Regexp.Time24H
+      else if raw == Regexp.PhoneNumUS.underlying.toString() then Regexp.PhoneNumUS
+      else if raw == Regexp.ZipCodeUS.underlying.toString() then Regexp.ZipCodeUS
+      else Regexp.Custom(raw.r)
 
 final case class ContentType(
     id: ContentTypeId,

@@ -4,6 +4,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.Json.obj
@@ -390,15 +391,15 @@ object implicits:
     ).mapN(WebhookDefinition.apply)
 
   implicit def fieldTypeEncoder[A <: FieldType]: Encoder[A] = {
-    case FieldType.Text(true, validations) =>
+    case t @ FieldType.Text(true, _, _, _, _) =>
       obj(
         "type"        -> "Text".asJson,
-        "validations" -> validations.asJson
+        "validations" -> t.validations.asJson
       )
-    case FieldType.Text(false, validations) =>
+    case t @ FieldType.Text(false, _, _, _, _) =>
       obj(
         "type"        -> "Symbol".asJson,
-        "validations" -> validations.asJson
+        "validations" -> t.validations.asJson
       )
     case FieldType.RichText(validations) =>
       obj(
@@ -437,8 +438,8 @@ object implicits:
 
   given fieldTypeDecoder: Decoder[FieldType] = c =>
     c.downField("type").as[String].flatMap {
-      case "Text"     => c.downField("validations").as[Set[Validation]].map(FieldType.Text(true, _))
-      case "Symbol"   => c.downField("validations").as[Set[Validation]].map(FieldType.Text(false, _))
+      case "Text"     => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(true, _))
+      case "Symbol"   => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(false, _))
       case "Integer"  => FieldType.Integer.asRight
       case "Number"   => FieldType.Number.asRight
       case "Boolean"  => FieldType.Boolean.asRight
@@ -676,15 +677,15 @@ object implicits:
     yield Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
 
   given validationDecoder: Decoder[Validation] = c =>
-    c.downField("in").success.map(_.as[List[String]].map[Validation](Validation.ContainedIn.apply)) orElse
+    c.downField("in").success.map(_.as[NonEmptyList[String]].map[Validation](Validation.ContainedIn.apply)) orElse
       c.downField("enabledMarks").success.map(_.as[Set[String]].map[Validation](Validation.RichTextMarks.apply)) orElse
       c
         .downField("enabledNodeTypes")
         .success
         .map(_.as[Set[String]].map[Validation](Validation.RichTextNodeTypes.apply)) orElse
       c.downField("unique").success.map(_.as[Boolean].as[Validation](Validation.Unique)) orElse
-      c.downField("validUrl").success.map(_.as[Boolean].as[Validation](Validation.ValidUrl)) orElse
-      c.downField("regexp").success.map(_.downField("pattern").as[String].map[Validation](Validation.Regexp(_))) orElse
+      c.downField("validUrl").success.map(_.as[Boolean].as[Validation](Validation.Regexp.Url)) orElse
+      c.downField("regexp").success.map(_.downField("pattern").as[String].map[Validation](Validation.Regexp.of(_))) orElse
       c.downField("size").success.as(c.as[Validation.Size]) orElse
       c.downField("nodes").success.as(c.as[Validation.RichTextNodes]) orElse
       c.downField("linkContentType").success.as(c.as[Validation.LinkContentType]) getOrElse
@@ -711,16 +712,10 @@ object implicits:
       obj("enabledNodeTypes" -> enabledNodeTypes.asJson)
     case Validation.Unique =>
       obj("unique" -> true.asJson)
-    case Validation.ValidUrl =>
-      obj(
-        "regexp" -> obj(
-          "pattern" -> Validation.Regexp.validUrlRegexp.asJson
-        )
-      )
     case Validation.Regexp(regexp) =>
       obj(
         "regexp" -> obj(
-          "pattern" -> regexp.asJson
+          "pattern" -> regexp.toString().asJson
         )
       )
     case Validation.Size(min, max, message) =>
