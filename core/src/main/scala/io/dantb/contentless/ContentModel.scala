@@ -63,6 +63,7 @@ object Field:
     a.fieldType === b.fieldType && a.defaultValue === b.defaultValue
   }
 
+// Include everything here: https://www.contentful.com/help/available-validations/
 sealed trait Validation extends Product with Serializable
 
 object Validation:

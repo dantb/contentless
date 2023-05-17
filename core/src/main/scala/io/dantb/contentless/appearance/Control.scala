@@ -106,9 +106,10 @@ object Control:
     object AssetLinkEditor extends BuiltIn("assetLinkEditor"):
       def asset: AssetControl = new AssetControl(this) {}
 
-    // TODO: support assets array in DSL, with and without editor interfaces
-    object AssetLinksEditor   extends BuiltIn("assetLinksEditor")
-    object AssetGalleryEditor extends BuiltIn("assetGalleryEditor")
+    object AssetLinksEditor extends BuiltIn("assetLinksEditor"):
+      def assets: AssetsControl = new AssetsControl(this) {}
+    object AssetGalleryEditor extends BuiltIn("assetGalleryEditor"):
+      def assets: AssetsControl = new AssetsControl(this) {}
 
     object Boolean extends BuiltIn("boolean"):
       def boolean: BoolControl = new BoolControl(this) {}
@@ -331,7 +332,7 @@ object Control:
       showLinkEntity: Option[ShowLinkEntityAction] = Some(ShowLinkEntityAction(true)),
       helpText: Option[HelpText] = None
   ):
-    private def copy(
+    def copy(
         showCreateEntity: Option[ShowCreateEntityAction] = this.showCreateEntity,
         showLinkEntity: Option[ShowLinkEntityAction] = this.showLinkEntity,
         helpText: Option[HelpText] = this.helpText
@@ -344,6 +345,22 @@ object Control:
     def withHelpText(helpText: String): AssetControl = copy(helpText = HelpText(helpText).some)
     def removeShowCreateEntity(): AssetControl       = copy(showCreateEntity = None)
     def removeShowLinkEntity(): AssetControl         = copy(showLinkEntity = None)
+
+  // Indentical in configuration. However, users should not be able to set an assets field with an AssetControl, or vice versa.
+  opaque type AssetsControl = AssetControl
+  object AssetsControl:
+    export AssetControl.*
+    extension (a: AssetsControl)
+      def value: Control                                                = a.value
+      def settings: Set[CustomSetting]                                  = a.settings
+      def showCreateEntity: Option[ShowCreateEntityAction]              = a.showCreateEntity
+      def showLinkEntity: Option[ShowLinkEntityAction]                  = a.showLinkEntity
+      def helpText: Option[HelpText]                                    = a.helpText
+      def withShowCreateEntity(showCreateEntity: Boolean): AssetControl = a.withShowCreateEntity(showCreateEntity)
+      def withShowLinkEntity(showLinkEntity: Boolean): AssetControl     = a.withShowLinkEntity(showLinkEntity)
+      def withHelpText(helpText: String): AssetControl                  = a.withHelpText(helpText)
+      def removeShowCreateEntity(): AssetControl                        = a.removeShowCreateEntity()
+      def removeShowLinkEntity(): AssetControl                          = a.removeShowLinkEntity()
 
   sealed abstract case class EntryControl(
       value: Control,

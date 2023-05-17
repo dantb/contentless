@@ -361,7 +361,7 @@ object FieldCodec:
         textList.settings ++ textList.helpText.toSet
       ) {}
 
-    def media(
+    def asset(
         fieldId: String,
         fieldName: String,
         mimeTypeGroup: Set[MimeTypeGroup],
@@ -376,7 +376,24 @@ object FieldCodec:
         assetControl.showCreateEntity.toSet ++ assetControl.showLinkEntity.toSet ++ assetControl.settings ++ assetControl.helpText.toSet
       ) {}
 
-    def reference(
+    def assets(
+        fieldId: String,
+        fieldName: String,
+        mimeTypeGroup: Set[MimeTypeGroup],
+        minLength: Option[Int] = None,
+        maxLength: Option[Int] = None,
+        assetsControl: AssetsControl = Control.BuiltIn.AssetLinksEditor.assets
+    ): FieldCodec[List[Media]] =
+      new FieldCodec[List[Media]](
+        fieldId,
+        FieldType.Array(FieldType.Media(mimeTypeGroup), minLength, maxLength),
+        fieldName,
+        None,
+        assetsControl.value,
+        assetsControl.showCreateEntity.toSet ++ assetsControl.showLinkEntity.toSet ++ assetsControl.settings ++ assetsControl.helpText.toSet
+      ) {}
+
+    def entry(
         fieldId: String,
         fieldName: String,
         linkContentTypes: Set[ContentTypeId],
@@ -391,7 +408,7 @@ object FieldCodec:
         entryControl.showCreateEntity.toSet ++ entryControl.showLinkEntity.toSet ++ entryControl.settings ++ entryControl.helpText.toList
       ) {}
 
-    def references(
+    def entries(
         fieldId: String,
         fieldName: String,
         linkContentTypes: Set[ContentTypeId],
