@@ -412,10 +412,14 @@ object implicits:
         "linkType"    -> "Asset".asJson,
         "validations" -> Json.arr(obj("linkMimetypeGroup" -> mimeTypeGroup.asJson))
       )
-    case FieldType.Integer  => obj("type" -> "Integer".asJson)
-    case FieldType.Number   => obj("type" -> "Number".asJson)
-    case FieldType.Boolean  => obj("type" -> "Boolean".asJson)
-    case FieldType.Json     => obj("type" -> "Object".asJson)
+    case FieldType.Integer => obj("type" -> "Integer".asJson)
+    case FieldType.Number  => obj("type" -> "Number".asJson)
+    case FieldType.Boolean => obj("type" -> "Boolean".asJson)
+    case j: FieldType.Json =>
+      obj(
+        "type"        -> "Object".asJson,
+        "validations" -> j.validations.asJson
+      )
     case FieldType.DateTime => obj("type" -> "Date".asJson)
     case FieldType.Location => obj("type" -> "Location".asJson)
     case FieldType.Reference(linkContentTypes) =>
@@ -443,7 +447,7 @@ object implicits:
       case "Integer"  => FieldType.Integer.asRight
       case "Number"   => FieldType.Number.asRight
       case "Boolean"  => FieldType.Boolean.asRight
-      case "Object"   => FieldType.Json.asRight
+      case "Object"   => c.downField("validations").as[Set[Validation]].map(FieldType.Json.fromValidations(_))
       case "Date"     => FieldType.DateTime.asRight
       case "Location" => FieldType.Location.asRight
       case "RichText" => c.downField("validations").as[Set[Validation]].map[FieldType](FieldType.RichText.apply)
