@@ -75,8 +75,9 @@ sealed trait Validation extends Product with Serializable
 object Validation:
   given eq: Eq[Validation] = Eq.fromUniversalEquals
 
-  final case class ContainedIn[A: Encoder](allowedValues: NonEmptyList[A]) extends Validation:
-    def asJson: Json = summon[Encoder[NonEmptyList[A]]](allowedValues)
+  final case class ContainedIn(allowedValues: NonEmptyList[String])        extends Validation
+  final case class ContainedInInt(allowedValues: NonEmptyList[Int])        extends Validation
+  final case class ContainedInDecimal(allowedValues: NonEmptyList[Double]) extends Validation
 
   final case class RichTextNodes(
       assetHyperlinkSize: Option[Size],

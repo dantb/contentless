@@ -45,7 +45,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("text field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
       val fieldCodec        = text(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = false, None, None, None, None)
+      val expectedFieldType = FieldType.Text(longText = false, None, None, None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -54,7 +54,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("long text field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
       val fieldCodec        = longText(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = true, None, None, None, None)
+      val expectedFieldType = FieldType.Text(longText = true, None, None, None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -151,7 +151,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("text list field") {
     forAll { (id: String, name: String, disabled: Boolean, default: Option[List[String]]) =>
       val fieldCodec        = textList(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, None, None, None, None), None, None)
+      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, None, None, None), None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -169,7 +169,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("assets field") {
     forAll { (id: String, name: String, disabled: Boolean, mimeTypes: Set[MimeTypeGroup]) =>
       val fieldCodec        = assets(id, name, mimeTypes)
-      val expectedFieldType = FieldType.Array(FieldType.Media(mimeTypes), None, None)
+      val expectedFieldType = FieldType.Array(FieldType.Media(mimeTypes), None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
     }
@@ -187,7 +187,7 @@ class EntryCodecSpec extends ScalaCheckSuite:
   property("entries field") {
     forAll { (id: String, name: String, disabled: Boolean, contentTypes: Set[ContentTypeId]) =>
       val fieldCodec        = entries(id, name, contentTypes)
-      val expectedFieldType = FieldType.Array(FieldType.Reference(contentTypes), None, None)
+      val expectedFieldType = FieldType.Array(FieldType.Reference(contentTypes), None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
     }

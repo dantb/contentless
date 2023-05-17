@@ -200,15 +200,14 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[String] = None,
-        minChars: Option[Int] = None,
-        maxChars: Option[Int] = None,
+        charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[Regexp] = None,
         textControl: LongTextControl = Control.BuiltIn.Markdown.longText
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = true, minChars, maxChars, allowedValues, matchesRegex),
+        FieldType.Text(longText = true, charBounds, allowedValues, matchesRegex),
         fieldName,
         defaultValue,
         textControl.value,
@@ -219,15 +218,14 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[String] = None,
-        minChars: Option[Int] = None,
-        maxChars: Option[Int] = None,
+        charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[Regexp] = None,
         textControl: TextControl = Control.BuiltIn.SingleLine.text
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = false, minChars, maxChars, allowedValues, matchesRegex),
+        FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex),
         fieldName,
         defaultValue,
         textControl.value,
@@ -365,18 +363,15 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         defaultValue: Option[List[String]] = None,
-        minLength: Option[Int] = None,
-        maxLength: Option[Int] = None,
-        minChars: Option[Int] = None,
-        maxChars: Option[Int] = None,
+        arrayBounds: Option[Validation.Size] = None,
+        charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[Regexp] = None,
         textListControl: TextListControl = Control.BuiltIn.TagEditor.textList
     ): FieldCodec[List[String]] =
       new FieldCodec[List[String]](
         fieldId,
-        FieldType
-          .Array(FieldType.Text(longText = false, minChars, maxChars, allowedValues, matchesRegex), minLength, maxLength),
+        FieldType.Array(FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex), arrayBounds),
         fieldName,
         defaultValue,
         textListControl.value,
@@ -402,13 +397,12 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         mimeTypeGroup: Set[MimeTypeGroup],
-        minLength: Option[Int] = None,
-        maxLength: Option[Int] = None,
+        arrayBounds: Option[Validation.Size] = None,
         assetsControl: AssetsControl = Control.BuiltIn.AssetLinksEditor.assets
     ): FieldCodec[List[Media]] =
       new FieldCodec[List[Media]](
         fieldId,
-        FieldType.Array(FieldType.Media(mimeTypeGroup), minLength, maxLength),
+        FieldType.Array(FieldType.Media(mimeTypeGroup), arrayBounds),
         fieldName,
         None,
         assetsControl.value,
@@ -434,13 +428,12 @@ object FieldCodec:
         fieldId: String,
         fieldName: String,
         linkContentTypes: Set[ContentTypeId],
-        minLength: Option[Int] = None,
-        maxLength: Option[Int] = None,
+        arrayBounds: Option[Validation.Size] = None,
         entriesControl: EntriesControl = Control.BuiltIn.EntryLinksEditor.entries
     ): FieldCodec[List[Reference]] =
       new FieldCodec[List[Reference]](
         fieldId,
-        FieldType.Array(FieldType.Reference(linkContentTypes), minLength, maxLength),
+        FieldType.Array(FieldType.Reference(linkContentTypes), arrayBounds),
         fieldName,
         None,
         entriesControl.value,

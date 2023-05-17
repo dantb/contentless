@@ -13,54 +13,44 @@ sealed trait FieldType
 
 object FieldType:
 
-  given eq: Eq[FieldType] = Eq.instance {
-    case (a: Text, b: Text) =>
-      a.longText === b.longText && a.minChars === b.minChars && a.maxChars === b.maxChars && a.allowedValues === b.allowedValues && a.matchesRegex === b.matchesRegex
-    case (a: RichText, b: RichText) => a.validations === b.validations
-    case (a: Array, b: Array)       =>
-      // using the `val eq` explicitly here, since implicitly using
-      // the val while inside the closure is now considered dangerous and incurs a compile-error under -Wself-implicit
-      eq.eqv(a.itemType, b.itemType) && a.minLength === b.minLength && a.maxLength === b.maxLength
-    case (a, b) => a == b
-  }
+  given eq: Eq[FieldType] = Eq.fromUniversalEquals
 
   final case class Text(
       longText: Boolean,
-      minChars: Option[Int],
-      maxChars: Option[Int],
+      charBounds: Option[Validation.Size],
       allowedValues: Option[NonEmptyList[String]],
       matchesRegex: Option[Regexp]
   ) extends FieldType:
-    def validations: Set[Validation] = Set(Validation.Size(minChars, maxChars, None)) ++ matchesRegex.toSet ++ allowedValues
-      .map(Validation.ContainedIn(_))
-      .toSet
+    def validations: Set[Validation] =
+      charBounds.toSet ++ matchesRegex.toSet ++ allowedValues.map(Validation.ContainedIn(_)).toSet
   object Text:
     def fromValidations(longText: Boolean, vs: Set[Validation]): Text =
       val size          = vs.collectFirst { case s: Validation.Size => s }
-      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[String] => s }.map(_.allowedValues)
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn => s }.map(_.allowedValues)
       val matchesRegex  = vs.collectFirst { case s: Validation.Regexp => s }
-      Text(longText, size.flatMap(_.min), size.flatMap(_.max), allowedValues, matchesRegex)
+      Text(longText, size, allowedValues, matchesRegex)
 
   final case class Media(mimeTypeGroup: Set[MimeTypeGroup]) extends FieldType
 
   final case class Reference(linkContentTypes: Set[ContentTypeId]) extends FieldType
 
-  final case class Array(itemType: FieldType, minLength: Option[Int], maxLength: Option[Int]) extends FieldType
+  final case class Array(itemType: FieldType, arrayBounds: Option[Validation.Size]) extends FieldType:
+    def validations: Set[Validation] = arrayBounds.toSet
 
   final case class RichText(validations: Set[Validation]) extends FieldType
 
   final case class Integer(allowedValues: Option[NonEmptyList[Int]]) extends FieldType:
-    def validations: Set[Validation] = allowedValues.map(Validation.ContainedIn(_)).toSet
+    def validations: Set[Validation] = allowedValues.map(Validation.ContainedInInt(_)).toSet
   object Integer:
     def fromValidations(vs: Set[Validation]): Integer =
-      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[Int] => s }.map(_.allowedValues)
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedInInt => s }.map(_.allowedValues)
       Integer(allowedValues)
 
   final case class Number(allowedValues: Option[NonEmptyList[Double]]) extends FieldType:
-    def validations: Set[Validation] = allowedValues.map(Validation.ContainedIn(_)).toSet
+    def validations: Set[Validation] = allowedValues.map(Validation.ContainedInDecimal(_)).toSet
   object Number:
     def fromValidations(vs: Set[Validation]): Number =
-      val allowedValues = vs.collectFirst { case s: Validation.ContainedIn[Double] => s }.map(_.allowedValues)
+      val allowedValues = vs.collectFirst { case s: Validation.ContainedInDecimal => s }.map(_.allowedValues)
       Number(allowedValues)
 
   case object Boolean extends FieldType
