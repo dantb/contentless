@@ -301,6 +301,10 @@ object Control:
     def removeFormat(): DateTimeControl                  = copy(format = None)
     def removeClockType(): DateTimeControl               = copy(clockType = None)
 
+  object DateTimeControl:
+    val ZonedDefault = Control.BuiltIn.DatePicker.dateTime.zoned
+    val LocalDefault = Control.BuiltIn.DatePicker.dateTime
+
   sealed abstract case class LocationControl(
       value: Control,
       settings: Set[CustomSetting] = Set.empty[CustomSetting],
