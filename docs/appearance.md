@@ -5,7 +5,11 @@ There's an "Appearance" tab in Contentful's field editor. These configrations ar
 
 Field appearance can be customised in several ways, including help text, field-specific and custom settings. `contentless` tries to make these consistent with the UI. For example, to make `displayDate` appear using a 12 hour clock along with help text:
 
-```scala mdoc:silent
+```scala mdoc
+import io.dantb.contentless.dsl.*
+import io.dantb.contentless.appearance.Control.DateTimeControl
+import io.dantb.contentless.appearance.FieldControlSetting.DatePicker.ClockType
+
 zonedDateTime(
   "displayDate",
   "Display Date",
@@ -22,8 +26,10 @@ We can also modify the appearance of the entire entry editor using extensions, a
 
 If using `contentless` for content management, it's also recommended to use it for appearance customisations. This avoids divergence between the code model and what we see in the CMS. `contentless` abstracts away the fact that editor interfaces and content types are exposed through different APIs. For example, we could reorder or replace the sidebar widgets using a similar declarative style:
 
-```scala mdoc:silent
-articleCodec.withSidebar(List(SidebarWidget.BuiltIn.InfoPanel, SidebarWidget.BuiltIn.Publication, SidebarWidget.BuiltIn.Users))
+```scala mdoc
+import io.dantb.contentless.appearance.SidebarWidget
+
+text("title", "Title").required.withSidebar(List(SidebarWidget.BuiltIn.InfoPanel, SidebarWidget.BuiltIn.Publication, SidebarWidget.BuiltIn.Users))
 ```
 
 All of this is accessible via the editor interfaces API: changes are tracked and appearance customisations can be regenerated in any Contentful space or environment from code.

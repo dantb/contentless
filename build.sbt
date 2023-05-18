@@ -63,7 +63,7 @@ lazy val graphql = project
     )
   ).dependsOn(core)
 
-lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
+lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin).dependsOn(core, graphql)
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
