@@ -8,8 +8,8 @@ import cats.syntax.all.*
 import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.*
 import io.dantb.contentless.*
-import io.dantb.contentless.RichText.Node
-import io.dantb.contentless.Validation.Regexp
+import io.dantb.contentless.RichText.{Mark, Node}
+import io.dantb.contentless.Validation.{Regexp, RichTextNodes}
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.Control.*
 import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
@@ -346,12 +346,26 @@ object FieldCodec:
     def richText(
         fieldId: String,
         fieldName: String,
-        validations: Set[Validation] = Set.empty,
+        allowedNodeTypes: Set[RichTextNodeType] = RichTextNodeType.All,
+        allowedMarks: Set[Mark] = RichText.Mark.All,
+        entryHyperlink: Option[RichTextNodes.EntryHyperlink] = None,
+        entryBlock: Option[RichTextNodes.EntryBlock] = None,
+        entryInline: Option[RichTextNodes.EntryInline] = None,
+        assetHyperlinkSize: Option[Validation.Size] = None,
+        assetBlockSize: Option[Validation.Size] = None,
         richTextControl: RichTextControl = Control.BuiltIn.RichTextEditor.richText
     ): FieldCodec[Node] =
       new FieldCodec[Node](
         fieldId,
-        FieldType.RichText(validations),
+        FieldType.RichText(
+          allowedNodeTypes,
+          allowedMarks,
+          entryHyperlink,
+          entryBlock,
+          entryInline,
+          assetHyperlinkSize,
+          assetBlockSize
+        ),
         fieldName,
         None,
         richTextControl.value,

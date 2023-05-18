@@ -6,6 +6,7 @@ import cats.{Eq, Show}
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import io.circe.{Encoder, Json}
+import io.dantb.contentless.RichText.Mark
 import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.instances.given
 
@@ -94,11 +95,30 @@ object Validation:
     final case class EntryBlock(size: Option[Size], linkContentType: Option[LinkContentType])
 
   final case class LinkContentType(allowedContentTypes: Set[String], message: Option[String]) extends Validation
-  final case class RichTextMarks(allowedValues: Set[String])                                  extends Validation
-  final case class RichTextNodeTypes(allowedValues: Set[String])                              extends Validation
-  final case class Size(min: Option[Int], max: Option[Int], message: Option[String])          extends Validation
-  final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime])          extends Validation
-  case object Unique                                                                          extends Validation
+
+  final case class RichTextMarks(allowedValues: Set[Mark]) extends Validation:
+    def message: Option[String] =
+      val size = allowedValues.size
+      size match
+        case 0 => None
+        case 1 => s"Only ${allowedValues.head.asString} marks are allowed".some
+        case other =>
+          val (allButOne, last) = allowedValues.map(_.asString).splitAt(size - 1)
+          s"Only ${allButOne.mkString(", ")} and ${last.head} marks are allowed".some
+
+  final case class RichTextNodeTypes(allowedValues: Set[RichTextNodeType]) extends Validation:
+    def message: Option[String] =
+      val size = allowedValues.size
+      size match
+        case 0 => None
+        case 1 => s"Only ${allowedValues.head.asString} nodes are allowed".some
+        case other =>
+          val (allButOne, last) = allowedValues.map(_.asString).splitAt(size - 1)
+          s"Only ${allButOne.map(_.replaceAll("-", " ")).mkString(", ")} and ${last.head} nodes are allowed".some
+
+  final case class Size(min: Option[Int], max: Option[Int], message: Option[String]) extends Validation
+  final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime]) extends Validation
+  case object Unique                                                                 extends Validation
 
   enum Regexp(val underlying: Regex) extends Validation:
     case Url

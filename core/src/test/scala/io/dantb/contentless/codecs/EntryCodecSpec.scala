@@ -23,7 +23,9 @@ import java.time.temporal.ChronoUnit
 import cats.data.NonEmptyList
 import io.circe.Json
 import io.circe.syntax.*
-import io.dantb.contentless.{ContentModel, ContentTypeId, Field, FieldType, Media, MimeTypeGroup}
+import io.dantb.contentless.{ContentModel, ContentTypeId, Field, FieldType, Media, MimeTypeGroup, RichTextNodeType, Validation}
+import io.dantb.contentless.RichText.Mark
+import io.dantb.contentless.Validation.RichTextNodes
 import io.dantb.contentless.arbitrary.given
 import io.dantb.contentless.codecs.FieldCodec.DefaultZone
 import io.dantb.contentless.codecs.implicits.given
@@ -140,11 +142,42 @@ class EntryCodecSpec extends ScalaCheckSuite:
   }
 
   property("rich text field") {
-    forAll { (id: String, name: String, disabled: Boolean) =>
-      val fieldCodec        = richText(id, name)
-      val expectedFieldType = FieldType.RichText(Set.empty)
+    forAll {
+      (
+          id: String,
+          name: String,
+          disabled: Boolean,
+          allowedNodeTypes: Set[RichTextNodeType],
+          allowedMarks: Set[Mark],
+          entryHyperlink: Option[RichTextNodes.EntryHyperlink],
+          entryBlock: Option[RichTextNodes.EntryBlock],
+          entryInline: Option[RichTextNodes.EntryInline],
+          assetHyperlinkSize: Option[Validation.Size],
+          assetBlockSize: Option[Validation.Size]
+      ) =>
+        val fieldCodec = richText(
+          id,
+          name,
+          allowedNodeTypes,
+          allowedMarks,
+          entryHyperlink,
+          entryBlock,
+          entryInline,
+          assetHyperlinkSize,
+          assetBlockSize
+        )
 
-      assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
+        val expectedFieldType = FieldType.RichText(
+          allowedNodeTypes,
+          allowedMarks,
+          entryHyperlink,
+          entryBlock,
+          entryInline,
+          assetHyperlinkSize,
+          assetBlockSize
+        )
+
+        assertField(fieldCodec, id, name, disabled, expectedFieldType, None)
     }
   }
 

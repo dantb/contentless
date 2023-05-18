@@ -11,6 +11,7 @@ import io.circe.Json.obj
 import io.circe.syntax.*
 import io.dantb.contentless.*
 import io.dantb.contentless.Entry.{Authors, Timestamps}
+import io.dantb.contentless.RichText.Mark
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.codecs.EntryCodec
@@ -131,7 +132,7 @@ object implicits:
 
   given markEncoder: Encoder[RichText.Mark] = mark =>
     obj(
-      "type" -> mark.`type`.asJson
+      "type" -> mark.asString.asJson
     )
 
   implicit def richTextEncoder[A <: RichText.Node]: Encoder[A] = {
@@ -402,10 +403,10 @@ object implicits:
         "type"        -> "Symbol".asJson,
         "validations" -> t.validations.asJson
       )
-    case FieldType.RichText(validations) =>
+    case r: FieldType.RichText =>
       obj(
         "type"        -> "RichText".asJson,
-        "validations" -> validations.asJson
+        "validations" -> r.validations.asJson
       )
     case FieldType.Media(mimeTypeGroup) =>
       obj(
@@ -459,7 +460,7 @@ object implicits:
       case "Object"   => c.downField("validations").as[Set[Validation]].map(FieldType.Json.fromValidations(_))
       case "Date"     => c.downField("validations").as[Set[Validation]].map(FieldType.DateTime.fromValidations(_))
       case "Location" => FieldType.Location.asRight
-      case "RichText" => c.downField("validations").as[Set[Validation]].map[FieldType](FieldType.RichText.apply)
+      case "RichText" => c.downField("validations").as[Set[Validation]].map(FieldType.RichText.fromValidations(_))
       case "Link" =>
         c.downField("linkType").as[String].flatMap {
           case "Asset" =>
@@ -647,6 +648,11 @@ object implicits:
       message <- c.downField("message").as[Option[String]]
     yield Validation.Size(min, max, message)
 
+  given Decoder[RichTextNodeType] =
+    Decoder[String].emap(r => RichTextNodeType.from(r).toRight(s"Invalid rich text node type: $r"))
+
+  given Encoder[RichTextNodeType] = Encoder[String].contramap(_.asString)
+
   given richTextNodesValidationDecoder: Decoder[Validation.RichTextNodes] = c =>
     import Validation.*
     def parseNodeEntryValidation[A](
@@ -682,11 +688,11 @@ object implicits:
     c.downField("in").success.map(_.as[NonEmptyList[String]].map[Validation](Validation.ContainedIn.apply)) orElse
       c.downField("in").success.map(_.as[NonEmptyList[Int]].map[Validation](Validation.ContainedInInt.apply)) orElse
       c.downField("in").success.map(_.as[NonEmptyList[Double]].map[Validation](Validation.ContainedInDecimal.apply)) orElse
-      c.downField("enabledMarks").success.map(_.as[Set[String]].map[Validation](Validation.RichTextMarks.apply)) orElse
+      c.downField("enabledMarks").success.map(_.as[Set[Mark]].map[Validation](Validation.RichTextMarks.apply)) orElse
       c
         .downField("enabledNodeTypes")
         .success
-        .map(_.as[Set[String]].map[Validation](Validation.RichTextNodeTypes.apply)) orElse
+        .map(_.as[Set[RichTextNodeType]].map[Validation](Validation.RichTextNodeTypes.apply)) orElse
       c.downField("unique").success.map(_.as[Boolean].as[Validation](Validation.Unique)) orElse
       c.downField("validUrl").success.map(_.as[Boolean].as[Validation](Validation.Regexp.Url)) orElse
       c.downField("regexp").success.map(_.downField("pattern").as[String].map[Validation](Validation.Regexp.of(_))) orElse
@@ -714,10 +720,16 @@ object implicits:
       obj("in" -> allowedValues.asJson)
     case Validation.ContainedInDecimal(allowedValues) =>
       obj("in" -> allowedValues.asJson)
-    case Validation.RichTextMarks(enabledMarks) =>
-      obj("enabledMarks" -> enabledMarks.asJson)
-    case Validation.RichTextNodeTypes(enabledNodeTypes) =>
-      obj("enabledNodeTypes" -> enabledNodeTypes.asJson)
+    case v @ Validation.RichTextMarks(enabledMarks) =>
+      obj(
+        "enabledMarks" -> enabledMarks.asJson,
+        "message"      -> v.message.asJson
+      )
+    case v @ Validation.RichTextNodeTypes(enabledNodeTypes) =>
+      obj(
+        "enabledNodeTypes" -> enabledNodeTypes.asJson,
+        "message"          -> v.message.asJson
+      )
     case Validation.Unique =>
       obj("unique" -> true.asJson)
     case Validation.Regexp(regexp) =>
