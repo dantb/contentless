@@ -12,6 +12,7 @@ import io.circe.syntax.*
 import io.dantb.contentless.*
 import io.dantb.contentless.Entry.{Authors, Timestamps}
 import io.dantb.contentless.RichText.Mark
+import io.dantb.contentless.Validation.Regexp
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.codecs.EntryCodec
@@ -649,6 +650,14 @@ object implicits:
       message <- c.downField("message").as[Option[String]]
     yield Validation.Size(min, max, message)
 
+  given regexpDecoder: Decoder[Regexp] = Decoder[String].map(Regexp.of)
+
+  given validationRegexpDecoder: Decoder[Validation.RegexpValidation] = c =>
+    for
+      pattern <- c.downField("regexp").get[Regexp]("pattern")
+      message <- c.get[Option[String]]("message")
+    yield Validation.RegexpValidation(pattern, message)
+
   given Decoder[RichTextNodeType] =
     Decoder[String].emap(r => RichTextNodeType.from(r).toRight(s"Invalid rich text node type: $r"))
 
@@ -695,8 +704,7 @@ object implicits:
         .success
         .map(_.as[Set[RichTextNodeType]].map[Validation](Validation.RichTextNodeTypes.apply)) orElse
       c.downField("unique").success.map(_.as[Boolean].as[Validation](Validation.Unique)) orElse
-      c.downField("validUrl").success.map(_.as[Boolean].as[Validation](Validation.Regexp.Url)) orElse
-      c.downField("regexp").success.map(_.downField("pattern").as[String].map[Validation](Validation.Regexp.of(_))) orElse
+      c.downField("regexp").success.as(c.as[Validation.RegexpValidation]) orElse
       c.downField("size").success.as(c.as[Validation.Size]) orElse
       c.downField("nodes").success.as(c.as[Validation.RichTextNodes]) orElse
       c.downField("linkContentType").success.as(c.as[Validation.LinkContentType]) getOrElse
@@ -733,11 +741,12 @@ object implicits:
       )
     case Validation.Unique =>
       obj("unique" -> true.asJson)
-    case Validation.Regexp(regexp) =>
+    case Validation.RegexpValidation(regexp, message) =>
       obj(
         "regexp" -> obj(
-          "pattern" -> regexp.toString().asJson
-        )
+          "pattern" -> regexp.underlying.toString().asJson
+        ),
+        "message" -> message.asJson
       )
     case Validation.Size(min, max, message) =>
       obj(

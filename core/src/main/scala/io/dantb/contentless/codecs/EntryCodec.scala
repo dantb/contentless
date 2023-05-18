@@ -9,7 +9,7 @@ import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax.*
 import io.dantb.contentless.*
 import io.dantb.contentless.RichText.{Mark, Node}
-import io.dantb.contentless.Validation.{Regexp, RichTextNodes}
+import io.dantb.contentless.Validation.{RegexpValidation, RichTextNodes}
 import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.Control.*
 import io.dantb.contentless.appearance.Editor.BuiltIn.EntryEditor
@@ -202,7 +202,7 @@ object FieldCodec:
         defaultValue: Option[String] = None,
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
-        matchesRegex: Option[Regexp] = None,
+        matchesRegex: Option[RegexpValidation] = None,
         textControl: LongTextControl = Control.BuiltIn.Markdown.longText
     ): FieldCodec[String] =
       new FieldCodec[String](
@@ -220,7 +220,7 @@ object FieldCodec:
         defaultValue: Option[String] = None,
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
-        matchesRegex: Option[Regexp] = None,
+        matchesRegex: Option[RegexpValidation] = None,
         textControl: TextControl = Control.BuiltIn.SingleLine.text
     ): FieldCodec[String] =
       new FieldCodec[String](
@@ -380,7 +380,7 @@ object FieldCodec:
         arrayBounds: Option[Validation.Size] = None,
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
-        matchesRegex: Option[Regexp] = None,
+        matchesRegex: Option[RegexpValidation] = None,
         textListControl: TextListControl = Control.BuiltIn.TagEditor.textList
     ): FieldCodec[List[String]] =
       new FieldCodec[List[String]](

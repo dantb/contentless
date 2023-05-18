@@ -6,7 +6,7 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import io.dantb.contentless.RichText.Mark
-import io.dantb.contentless.Validation.{Regexp, RichTextNodes}
+import io.dantb.contentless.Validation.{Regexp, RegexpValidation, RichTextNodes}
 
 import scala.util.matching.Regex
 
@@ -20,7 +20,7 @@ object FieldType:
       longText: Boolean,
       charBounds: Option[Validation.Size],
       allowedValues: Option[NonEmptyList[String]],
-      matchesRegex: Option[Regexp]
+      matchesRegex: Option[RegexpValidation]
   ) extends FieldType:
     def validations: Set[Validation] =
       charBounds.toSet ++ matchesRegex.toSet ++ allowedValues.map(Validation.ContainedIn(_)).toSet
@@ -28,7 +28,7 @@ object FieldType:
     def fromValidations(longText: Boolean, vs: Set[Validation]): Text =
       val size          = vs.collectFirst { case s: Validation.Size => s }
       val allowedValues = vs.collectFirst { case s: Validation.ContainedIn => s }.map(_.allowedValues)
-      val matchesRegex  = vs.collectFirst { case s: Validation.Regexp => s }
+      val matchesRegex  = vs.collectFirst { case s: Validation.RegexpValidation => s }
       Text(longText, size, allowedValues, matchesRegex)
 
   final case class Media(mimeTypeGroup: Set[MimeTypeGroup]) extends FieldType
