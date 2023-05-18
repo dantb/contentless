@@ -1,4 +1,4 @@
-package io.dantb.contentless.codecs
+package io.dantb.contentless
 
 import java.time.ZonedDateTime
 
@@ -11,6 +11,7 @@ import io.dantb.contentless.dsl.*
 import munit.ScalaCheckSuite
 import org.scalacheck.Prop.*
 import io.dantb.contentless.appearance.SidebarWidget
+import io.dantb.contentless.codecs.EntryCodec
 
 // Examples of user-facing API used as the basic for the documentation.
 class DslSpec extends ScalaCheckSuite:

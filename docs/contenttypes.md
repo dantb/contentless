@@ -3,7 +3,7 @@
 ## Defining content types in code
 `ContentType` allows us to codify every aspect of a content type using Scala datatypes.
 
-```scala mdoc:silent
+```scala
 trait ContentType[A]:
   def id: ContentTypeId            // unique identifier of this content type
   def contentTypeName: String      // Display name for this content type
@@ -29,6 +29,8 @@ def allTags                             = Set(Tag.Sport, Tag.Politics, Tag.Scien
 def parseTag(slug: String): Option[Tag] = allTags.find(_.slug == slug)
 
 final case class Author(name: String, image: Media, bio: Option[String])
+object Author:
+  val id: ContentTypeId = ContentTypeId("author")
 
 final case class Article(
     title: String,
@@ -47,8 +49,11 @@ The library types involved here are:
 
 We define an `EntryCodec[Article]` as follows:
 
-```scala mdoc:silent
-val aritlceCodec: EntryCodec[Article] =
+```scala mdoc
+import cats.syntax.all.*
+import io.dantb.contentless.codecs.EntryCodec
+
+val articleCodec: EntryCodec[Article] =
   (text("title", "Title").required *:
     richText("body", "Body").required *:
     textList("tags", "Tags").required
@@ -58,13 +63,15 @@ val aritlceCodec: EntryCodec[Article] =
     zonedDateTime("displayDate", "Display Date").required).to[Article]
 ```
 
-Each field is defined using a DSL functions such as `text`, `entries` and `textList` to produce, respectively, an `EntryCodec[String]`, `EntryCodec[Set[Reference]]` and `EntryCodec[Set[Tag]]`. These are composed using the [twiddles](https://github.com/typelevel/twiddles) library to automatically map to and from `Article`. (This is an example of the [Invariant Monoidal](https://typelevel.org/cats/typeclasses/invariantmonoidal.html) pattern, commonly used for codecs.)
+Each field is defined using DSL functions such as `text`, `entries` and `textList` to produce, respectively, an `EntryCodec[String]`, `EntryCodec[Set[Reference]]` and `EntryCodec[Set[Tag]]`. These are composed using the [twiddles](https://github.com/typelevel/twiddles) library to automatically map to and from `Article`. (This is an example of the [Invariant Monoidal](https://typelevel.org/cats/typeclasses/invariantmonoidal.html) pattern, commonly used for codecs.)
 
-`eimap` is used to convert to and from our domain-specific types, for instance `List[String] => Set[Tag]`.
+`eimap` is used to convert to and from our domain-specific types, for instance from `List[String]` to `Set[Tag]`.
 
 We could additionally define validations and default values on fields:
 
-```scala mdoc:silent
+```scala mdoc
+import io.dantb.contentless.Validation.Size
+
 textList(
   "tags", 
   "Tags", 
