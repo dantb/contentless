@@ -5,7 +5,8 @@ import java.time.ZonedDateTime
 import cats.Eq
 import cats.data.NonEmptyList
 import cats.syntax.all.*
-import io.dantb.contentless.Validation.Regexp
+import io.dantb.contentless.RichText.Mark
+import io.dantb.contentless.Validation.{Regexp, RichTextNodes}
 
 import scala.util.matching.Regex
 
@@ -37,7 +38,35 @@ object FieldType:
   final case class Array(itemType: FieldType, arrayBounds: Option[Validation.Size]) extends FieldType:
     def validations: Set[Validation] = arrayBounds.toSet
 
-  final case class RichText(validations: Set[Validation]) extends FieldType
+  final case class RichText(
+      allowedNodeTypes: Set[RichTextNodeType],
+      allowedMarks: Set[Mark],
+      entryHyperlink: Option[RichTextNodes.EntryHyperlink],
+      entryBlock: Option[RichTextNodes.EntryBlock],
+      entryInline: Option[RichTextNodes.EntryInline],
+      assetHyperlinkSize: Option[Validation.Size],
+      assetBlockSize: Option[Validation.Size]
+  ) extends FieldType:
+    def validations: Set[Validation] = Set(
+      Validation.RichTextNodeTypes(allowedNodeTypes),
+      Validation.RichTextMarks(allowedMarks),
+      Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
+    )
+
+  object RichText:
+    def fromValidations(vs: Set[Validation]): RichText =
+      val allowedNodeTypes = vs.collectFirst { case Validation.RichTextNodeTypes(n) => n }.getOrElse(Set.empty)
+      val allowedMarks     = vs.collectFirst { case Validation.RichTextMarks(n) => n }.getOrElse(Set.empty)
+      val nodes            = vs.collectFirst { case s: Validation.RichTextNodes => s }
+      RichText(
+        allowedNodeTypes,
+        allowedMarks,
+        nodes.flatMap(_.entryHyperlink),
+        nodes.flatMap(_.entryBlock),
+        nodes.flatMap(_.entryInline),
+        nodes.flatMap(_.assetHyperlinkSize),
+        nodes.flatMap(_.assetBlockSize)
+      )
 
   final case class Integer(allowedValues: Option[NonEmptyList[Int]]) extends FieldType:
     def validations: Set[Validation] = allowedValues.map(Validation.ContainedInInt(_)).toSet
