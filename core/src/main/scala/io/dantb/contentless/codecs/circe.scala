@@ -145,38 +145,37 @@ object implicits:
       )
     case RichText.Heading1(content) =>
       obj(
-        "nodeType" -> "heading-1".asJson,
+        "nodeType" -> RichTextNodeType.Heading1.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.Heading2(content) =>
       obj(
-        "nodeType" -> "heading-2".asJson,
+        "nodeType" -> RichTextNodeType.Heading2.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.Heading3(content) =>
       obj(
-        "nodeType" -> "heading-3".asJson,
+        "nodeType" -> RichTextNodeType.Heading3.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.Heading4(content) =>
       obj(
-        "nodeType" ->
-          "heading-4".asJson,
-        "content" -> content.asJson,
-        "data"    -> obj()
+        "nodeType" -> RichTextNodeType.Heading4.asJson,
+        "content"  -> content.asJson,
+        "data"     -> obj()
       )
     case RichText.Heading5(content) =>
       obj(
-        "nodeType" -> "heading-5".asJson,
+        "nodeType" -> RichTextNodeType.Heading5.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.Heading6(content) =>
       obj(
-        "nodeType" -> "heading-6".asJson,
+        "nodeType" -> RichTextNodeType.Heading6.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
@@ -188,13 +187,13 @@ object implicits:
       )
     case RichText.Quote(content) =>
       obj(
-        "nodeType" -> "blockquote".asJson,
+        "nodeType" -> RichTextNodeType.Quote.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.Hr(content) =>
       obj(
-        "nodeType" -> "hr".asJson,
+        "nodeType" -> RichTextNodeType.Hr.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
@@ -206,13 +205,13 @@ object implicits:
       )
     case RichText.OrderedList(content) =>
       obj(
-        "nodeType" -> "ordered-list".asJson,
+        "nodeType" -> RichTextNodeType.OrderedList.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
     case RichText.UnorderedList(content) =>
       obj(
-        "nodeType" -> "unordered-list".asJson,
+        "nodeType" -> RichTextNodeType.UnorderedList.asJson,
         "content"  -> content.asJson,
         "data"     -> obj()
       )
@@ -224,37 +223,37 @@ object implicits:
       )
     case RichText.EntryLinkBlock(content, reference) =>
       obj(
-        "nodeType" -> "embedded-entry-block".asJson,
+        "nodeType" -> RichTextNodeType.EntryLinkBlock.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("target" -> reference.asJson)
       )
     case RichText.AssetLinkBlock(content, reference) =>
       obj(
-        "nodeType" -> "embedded-asset-block".asJson,
+        "nodeType" -> RichTextNodeType.AssetLinkBlock.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("target" -> reference.asJson)
       )
     case RichText.EntryLinkInline(content, reference) =>
       obj(
-        "nodeType" -> "embedded-entry-inline".asJson,
+        "nodeType" -> RichTextNodeType.EntryLinkInline.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("target" -> reference.asJson)
       )
     case RichText.Hyperlink(content, uri) =>
       obj(
-        "nodeType" -> "hyperlink".asJson,
+        "nodeType" -> RichTextNodeType.Hyperlink.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("uri" -> uri.asJson)
       )
     case RichText.AssetHyperlink(content, reference) =>
       obj(
-        "nodeType" -> "asset-hyperlink".asJson,
+        "nodeType" -> RichTextNodeType.AssetHyperlink.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("target" -> reference.asJson)
       )
     case RichText.EntryHyperlink(content, reference) =>
       obj(
-        "nodeType" -> "entry-hyperlink".asJson,
+        "nodeType" -> RichTextNodeType.EntryHyperlink.asJson,
         "content"  -> content.asJson,
         "data"     -> obj("target" -> reference.asJson)
       )
@@ -295,46 +294,48 @@ object implicits:
 
   given richTextDecoder: Decoder[RichText.Node] = c =>
     c.downField("nodeType").as[String].flatMap {
-      case "text"           => c.as[RichText.Text]
-      case "heading-1"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading1.apply)
-      case "heading-2"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading2.apply)
-      case "heading-3"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading3.apply)
-      case "heading-4"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading4.apply)
-      case "heading-5"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading5.apply)
-      case "heading-6"      => c.downField("content").as[List[RichText.Node]].map(RichText.Heading6.apply)
-      case "paragraph"      => c.as[RichText.Paragraph]
-      case "blockquote"     => c.downField("content").as[List[RichText.Paragraph]].map(RichText.Quote.apply)
-      case "hr"             => c.as[RichText.Hr]
-      case "ordered-list"   => c.downField("content").as[List[RichText.ListItem]].map(RichText.OrderedList.apply)
-      case "unordered-list" => c.downField("content").as[List[RichText.ListItem]].map(RichText.UnorderedList.apply)
-      case "list-item"      => c.as[RichText.ListItem]
-      case "document"       => c.downField("content").as[List[RichText.Node]].map(RichText.Document.apply)
-      case "embedded-entry-block" =>
+      case "text"                             => c.as[RichText.Text]
+      case RichTextNodeType.Heading1.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading1.apply)
+      case RichTextNodeType.Heading2.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading2.apply)
+      case RichTextNodeType.Heading3.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading3.apply)
+      case RichTextNodeType.Heading4.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading4.apply)
+      case RichTextNodeType.Heading5.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading5.apply)
+      case RichTextNodeType.Heading6.asString => c.downField("content").as[List[RichText.Node]].map(RichText.Heading6.apply)
+      case "paragraph"                        => c.as[RichText.Paragraph]
+      case RichTextNodeType.Quote.asString => c.downField("content").as[List[RichText.Paragraph]].map(RichText.Quote.apply)
+      case RichTextNodeType.Hr.asString    => c.as[RichText.Hr]
+      case RichTextNodeType.OrderedList.asString =>
+        c.downField("content").as[List[RichText.ListItem]].map(RichText.OrderedList.apply)
+      case RichTextNodeType.UnorderedList.asString =>
+        c.downField("content").as[List[RichText.ListItem]].map(RichText.UnorderedList.apply)
+      case "list-item" => c.as[RichText.ListItem]
+      case "document"  => c.downField("content").as[List[RichText.Node]].map(RichText.Document.apply)
+      case RichTextNodeType.EntryLinkBlock.asString =>
         (
           c.downField("content").as[List[RichText.Node]],
           c.downField("data").downField("target").as[Reference]
         ).mapN(RichText.EntryLinkBlock.apply)
-      case "embedded-asset-block" =>
+      case RichTextNodeType.AssetLinkBlock.asString =>
         (
           c.downField("content").as[List[RichText.Node]],
           c.downField("data").downField("target").as[Reference]
         ).mapN(RichText.AssetLinkBlock.apply)
-      case "embedded-entry-inline" =>
+      case RichTextNodeType.EntryLinkInline.asString =>
         (
           c.downField("content").as[List[RichText.Text]],
           c.downField("data").downField("target").as[Reference]
         ).mapN(RichText.EntryLinkInline.apply)
-      case "hyperlink" =>
+      case RichTextNodeType.Hyperlink.asString =>
         (
           c.downField("content").as[List[RichText.Text]],
           c.downField("data").downField("uri").as[String]
         ).mapN(RichText.Hyperlink.apply)
-      case "asset-hyperlink" =>
+      case RichTextNodeType.AssetHyperlink.asString =>
         (
           c.downField("content").as[List[RichText.Text]],
           c.downField("data").downField("target").as[Reference]
         ).mapN(RichText.AssetHyperlink.apply)
-      case "entry-hyperlink" =>
+      case RichTextNodeType.EntryHyperlink.asString =>
         (
           c.downField("content").as[List[RichText.Text]],
           c.downField("data").downField("target").as[Reference]

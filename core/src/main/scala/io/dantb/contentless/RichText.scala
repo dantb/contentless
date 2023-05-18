@@ -7,7 +7,6 @@ enum RichTextNodeType(val asString: String):
   case Heading4        extends RichTextNodeType("heading-4")
   case Heading5        extends RichTextNodeType("heading-5")
   case Heading6        extends RichTextNodeType("heading-6")
-  case Paragraph       extends RichTextNodeType("paragraph")
   case Quote           extends RichTextNodeType("blockquote")
   case Hr              extends RichTextNodeType("hr")
   case OrderedList     extends RichTextNodeType("ordered-list")
@@ -29,7 +28,6 @@ object RichTextNodeType:
     Heading4,
     Heading5,
     Heading6,
-    Paragraph,
     Quote,
     Hr,
     OrderedList,

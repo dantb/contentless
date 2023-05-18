@@ -23,7 +23,7 @@ import java.time.temporal.ChronoUnit
 import cats.data.NonEmptyList
 import io.circe.Json
 import io.circe.syntax.*
-import io.dantb.contentless.{ContentModel, ContentTypeId, Field, FieldType, Media, MimeTypeGroup, RichTextNodeType, Validation}
+import io.dantb.contentless.*
 import io.dantb.contentless.RichText.Mark
 import io.dantb.contentless.Validation.RichTextNodes
 import io.dantb.contentless.arbitrary.given
