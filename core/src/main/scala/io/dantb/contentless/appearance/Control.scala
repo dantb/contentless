@@ -332,7 +332,7 @@ object Control:
       showLinkEntity: Option[ShowLinkEntityAction] = Some(ShowLinkEntityAction(true)),
       helpText: Option[HelpText] = None
   ):
-    def copy(
+    private def copy(
         showCreateEntity: Option[ShowCreateEntityAction] = this.showCreateEntity,
         showLinkEntity: Option[ShowLinkEntityAction] = this.showLinkEntity,
         helpText: Option[HelpText] = this.helpText
