@@ -111,7 +111,9 @@ object Validation:
   final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime]) extends Validation
   case object Unique                                                                 extends Validation
 
-  enum Regexp(val underlying: Regex) extends Validation:
+  final case class RegexpValidation(regexp: Regexp, message: Option[String]) extends Validation
+
+  enum Regexp(val underlying: Regex):
     case Url
         extends Regexp("^(ftp|http|https):\\/\\/(\\w+:{0,1}\\w*@)?(\\S+)(:[0-9]+)?(\\/|\\/([\\w#!:.?+=&%@!\\-\\/]))?$".r)
     case Email                  extends Regexp("^\\w[\\w.-]*@([\\w-]+\\.)+[\\w-]+$".r)
