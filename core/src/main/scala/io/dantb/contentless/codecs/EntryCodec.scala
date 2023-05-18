@@ -306,7 +306,7 @@ object FieldCodec:
         defaultValue: Option[LocalDateTime] = None,
         minDate: Option[LocalDateTime] = None,
         maxDate: Option[LocalDateTime] = None,
-        dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
+        dateTimeControl: DateTimeControl = DateTimeControl.LocalDefault
     ): FieldCodec[LocalDateTime] =
       new FieldCodec[LocalDateTime](
         fieldId,
@@ -323,7 +323,7 @@ object FieldCodec:
         defaultValue: Option[ZonedDateTime] = None,
         minDate: Option[ZonedDateTime] = None,
         maxDate: Option[ZonedDateTime] = None,
-        dateTimeControl: DateTimeControl = Control.BuiltIn.DatePicker.dateTime
+        dateTimeControl: DateTimeControl = DateTimeControl.ZonedDefault
     ): FieldCodec[ZonedDateTime] =
       new FieldCodec[ZonedDateTime](
         fieldId,
