@@ -88,7 +88,7 @@ object EntryCodec extends TwiddleSyntax[EntryCodec]:
     override def write(value: Unit): Map[String, Json]                = Map.empty
     override val schema: List[Field]                                  = Nil
 
-  implicit def invariantMonoidal: InvariantMonoidal[EntryCodec] =
+  given invariantMonoidal: InvariantMonoidal[EntryCodec] =
     new InvariantMonoidal[EntryCodec]:
       override def unit: EntryCodec[Unit] = EntryCodec.unit
       override def product[A, B](fa: EntryCodec[A], fb: EntryCodec[B]): EntryCodec[(A, B)] =
@@ -203,11 +203,12 @@ object FieldCodec:
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[RegexpValidation] = None,
+        unique: Boolean = false,
         textControl: LongTextControl = Control.BuiltIn.Markdown.longText
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = true, charBounds, allowedValues, matchesRegex),
+        FieldType.Text(longText = true, charBounds, allowedValues, matchesRegex, unique),
         fieldName,
         defaultValue,
         textControl.value,
@@ -221,11 +222,12 @@ object FieldCodec:
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[RegexpValidation] = None,
+        unique: Boolean = false,
         textControl: TextControl = Control.BuiltIn.SingleLine.text
     ): FieldCodec[String] =
       new FieldCodec[String](
         fieldId,
-        FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex),
+        FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex, unique),
         fieldName,
         defaultValue,
         textControl.value,
@@ -252,11 +254,13 @@ object FieldCodec:
         fieldName: String,
         defaultValue: Option[Int] = None,
         allowedValues: Option[NonEmptyList[Int]] = None,
+        range: Option[Validation.Size] = None,
+        unique: Boolean = false,
         intControl: IntControl = Control.BuiltIn.NumberEditor.integer
     ): FieldCodec[Int] =
       new FieldCodec[Int](
         fieldId,
-        FieldType.Integer(allowedValues),
+        FieldType.Integer(allowedValues, range, unique),
         fieldName,
         defaultValue,
         intControl.value,
@@ -268,11 +272,12 @@ object FieldCodec:
         fieldName: String,
         defaultValue: Option[Double] = None,
         allowedValues: Option[NonEmptyList[Double]] = None,
+        unique: Boolean = false,
         numControl: NumControl = Control.BuiltIn.NumberEditor.number
     ): FieldCodec[Double] =
       new FieldCodec[Double](
         fieldId,
-        FieldType.Number(allowedValues),
+        FieldType.Number(allowedValues, unique),
         fieldName,
         defaultValue,
         numControl.value,
@@ -381,11 +386,12 @@ object FieldCodec:
         charBounds: Option[Validation.Size] = None,
         allowedValues: Option[NonEmptyList[String]] = None,
         matchesRegex: Option[RegexpValidation] = None,
+        unique: Boolean = false,
         textListControl: TextListControl = Control.BuiltIn.TagEditor.textList
     ): FieldCodec[List[String]] =
       new FieldCodec[List[String]](
         fieldId,
-        FieldType.Array(FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex), arrayBounds),
+        FieldType.Array(FieldType.Text(longText = false, charBounds, allowedValues, matchesRegex, unique), arrayBounds),
         fieldName,
         defaultValue,
         textListControl.value,

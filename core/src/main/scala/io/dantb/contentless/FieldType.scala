@@ -20,16 +20,19 @@ object FieldType:
       longText: Boolean,
       charBounds: Option[Validation.Size],
       allowedValues: Option[NonEmptyList[String]],
-      matchesRegex: Option[RegexpValidation]
+      matchesRegex: Option[RegexpValidation],
+      unique: Boolean
   ) extends FieldType:
     def validations: Set[Validation] =
-      charBounds.toSet ++ matchesRegex.toSet ++ allowedValues.map(Validation.ContainedIn(_)).toSet
+      charBounds.toSet ++ matchesRegex.toSet ++ allowedValues.map(Validation.ContainedIn(_)).toSet ++
+        (if unique then Set(Validation.Unique) else Set())
   object Text:
     def fromValidations(longText: Boolean, vs: Set[Validation]): Text =
       val size          = vs.collectFirst { case s: Validation.Size => s }
+      val unique        = vs.collectFirst { case s: Validation.Unique.type => true }.getOrElse(false)
       val allowedValues = vs.collectFirst { case s: Validation.ContainedIn => s }.map(_.allowedValues)
       val matchesRegex  = vs.collectFirst { case s: Validation.RegexpValidation => s }
-      Text(longText, size, allowedValues, matchesRegex)
+      Text(longText, size, allowedValues, matchesRegex, unique)
 
   final case class Media(mimeTypeGroup: Set[MimeTypeGroup]) extends FieldType
 
@@ -68,24 +71,28 @@ object FieldType:
         nodes.flatMap(_.assetBlockSize)
       )
 
-  final case class Integer(allowedValues: Option[NonEmptyList[Int]]) extends FieldType:
+  final case class Integer(allowedValues: Option[NonEmptyList[Int]], range: Option[Validation.Size], unique: Boolean)
+      extends FieldType:
     def validations: Set[Validation] = allowedValues.map(Validation.ContainedInInt(_)).toSet
   object Integer:
     def fromValidations(vs: Set[Validation]): Integer =
+      val range         = vs.collectFirst { case s: Validation.Size => s }
+      val unique        = vs.collectFirst { case s: Validation.Unique.type => true }.getOrElse(false)
       val allowedValues = vs.collectFirst { case s: Validation.ContainedInInt => s }.map(_.allowedValues)
-      Integer(allowedValues)
+      Integer(allowedValues, range, unique)
 
-  final case class Number(allowedValues: Option[NonEmptyList[Double]]) extends FieldType:
+  final case class Number(allowedValues: Option[NonEmptyList[Double]], unique: Boolean) extends FieldType:
     def validations: Set[Validation] = allowedValues.map(Validation.ContainedInDecimal(_)).toSet
   object Number:
     def fromValidations(vs: Set[Validation]): Number =
+      val unique        = vs.collectFirst { case s: Validation.Unique.type => true }.getOrElse(false)
       val allowedValues = vs.collectFirst { case s: Validation.ContainedInDecimal => s }.map(_.allowedValues)
-      Number(allowedValues)
+      Number(allowedValues, unique)
 
   case object Boolean extends FieldType
 
   final case class Json(minProperties: Option[Int], maxProperties: Option[Int]) extends FieldType:
-    def validations: Set[Validation] = Set(Validation.Size(minProperties, maxProperties, None))
+    def validations: Set[Validation] = Set(Validation.Size(minProperties, maxProperties, None, "size"))
 
   object Json:
     def fromValidations(vs: Set[Validation]): Json =

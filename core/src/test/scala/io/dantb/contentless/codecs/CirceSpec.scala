@@ -1,189 +1,127 @@
 package io.dantb.contentless.codecs
 
 import cats.data.NonEmptyList
-import io.circe.{Decoder, Json, Printer}
+import cats.kernel.Order
+import cats.syntax.all.*
+import io.circe.{Decoder, Json, JsonObject, Printer}
 import io.circe.literal.*
 import io.circe.syntax.*
 import io.dantb.contentless.{ContentTypeId, Field, Validation}
 import io.dantb.contentless.Validation.Regexp
+import io.dantb.contentless.codecs.CirceSpec.*
 import io.dantb.contentless.codecs.implicits.given
 import io.dantb.contentless.dsl.*
 import io.dantb.contentless.instances.given
 import munit.ScalaCheckSuite
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop.*
 
 class CirceSpec extends ScalaCheckSuite:
 
-  test("long text field serialisation round trip") {
-    val field = longText(
-      "longTextField",
-      "Long Text Field",
-      defaultValue = Some("donald.duck@gmail.com"),
-      charBounds = Some(Validation.Size(Some(0), Some(50), Some("Must be between 0 and 50 characters"))),
-      matchesRegex = Some(Validation.RegexpValidation(Regexp.Email, Some("Must match email regex case insensitively")))
-    ).required
+  given Arbitrary[Json] = Arbitrary(Gen.oneOf(CirceSpec.All))
 
-    val j = json"""
-  {
-    "id": "longTextField",
-    "name": "Long Text Field",
-    "type": "Text",
-    "localized": false,
-    "required": true,
-    "validations": [
-      {
-        "size": {
-          "min": 0,
-          "max": 50
-        },
-        "message": "Must be between 0 and 50 characters"
-      },
-      {
-        "regexp": {
-          "pattern": "^\\w[\\w.-]*@([\\w-]+\\.)+[\\w-]+$$"
-        },
-        "message": "Must match email regex case insensitively"
-      }
-    ],
-    "defaultValue": {
-      "en-GB": "donald.duck@gmail.com"
-    },
-    "disabled": false
+  property("field serialisation round trip") {
+    forAll { (json: Json) =>
+      assertEquals(json.as[Field].map(_.asJson.print), Right(json.print))
+    }
   }
+
+  extension (j: Json)
+    def normalised: Json = j.arrayOrObject[Json](
+      j,
+      array => Json.fromValues(array.map(_.normalised).sortBy(_.toString)),
+      obj =>
+        JsonObject.fromIterable {
+          obj.toList.map((k, v) => k -> v.normalised).sortBy(_._1)
+        }.asJson
+    )
+    def print: String = j.normalised.printWith(Printer.spaces2SortKeys)
+
+object CirceSpec:
+
+  val All = List(
+    LongText,
+    ShortText,
+    ShortTextDefaulted,
+    Boolean,
+    Decimal,
+    CirceSpec.Json,
+    LocalDateTime,
+    ZonedDateTime,
+    Location,
+    TextList,
+    Asset,
+    MultipleAssets,
+    Entry,
+    MultipleEntries,
+    RichText
+  )
+
+  val LongText = json"""
+    {
+        "id": "longTextField",
+        "name": "Long Text Field",
+        "type": "Text",
+        "localized": false,
+        "required": true,
+        "validations": [
+        {
+            "size": {
+                "min": 0,
+                "max": 50
+            },
+            "message": "Must be between 0 and 50 characters"
+        },
+        {
+            "regexp": {
+                "pattern": "^\\w[\\w.-]*@([\\w-]+\\.)+[\\w-]+$$"
+            },
+            "message": "Must match email regex case insensitively"
+        }
+        ],
+        "defaultValue": {
+            "en-GB": "donald.duck@gmail.com"
+        },
+        "disabled": false
+    }
     """
 
-    val written: Json               = field.schema.head.asJson
-    val read: Decoder.Result[Field] = j.as[Field]
-
-    assertEquals(written.print, j.print)
-    assertEquals(read, Right(field.schema.head))
-  }
-
-  extension (j: Json) def print: String = j.printWith(Printer.spaces2SortKeys)
-
-  def fullResponse: Json = json"""
-{
-    "sys": {
-        "space": {
-            "sys": {
-                "type": "Link",
-                "linkType": "Space",
-                "id": "9wt1zvqpsy8o"
-            }
-        },
-        "id": "allFieldTypes",
-        "type": "ContentType",
-        "createdAt": "2023-05-18T12:22:18.599Z",
-        "updatedAt": "2023-05-18T13:20:01.560Z",
-        "environment": {
-            "sys": {
-                "id": "master",
-                "type": "Link",
-                "linkType": "Environment"
-            }
-        },
-        "publishedVersion": 33,
-        "publishedAt": "2023-05-18T13:20:01.560Z",
-        "firstPublishedAt": "2023-05-18T12:22:19.005Z",
-        "createdBy": {
-            "sys": {
-                "type": "Link",
-                "linkType": "User",
-                "id": "6gaSKdIG0FToScPLiTwecW"
-            }
-        },
-        "updatedBy": {
-            "sys": {
-                "type": "Link",
-                "linkType": "User",
-                "id": "6gaSKdIG0FToScPLiTwecW"
-            }
-        },
-        "publishedCounter": 17,
-        "version": 34,
-        "publishedBy": {
-            "sys": {
-                "type": "Link",
-                "linkType": "User",
-                "id": "6gaSKdIG0FToScPLiTwecW"
-            }
-        }
-    },
-    "displayField": "longTextField",
-    "name": "All Field Types",
-    "description": "This content type has every field type with validations enabled (minus all permutations). Used to generated an API response for round trip Scala DSL tests.",
-    "fields": [
-        {
-            "id": "longTextField",
-            "name": "Long Text Field",
-            "type": "Text",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 50
-                    },
-                    "message": "Must be between 0 and 50 characters"
-                },
-                {
-                    "regexp": {
-                        "pattern": "^\\w[\\w.-]*@([\\w-]+\\.)+[\\w-]+$",
-                        "flags": "i"
-                    },
-                    "message": "Must match email regex case insensitively"
-                },
-                {
-                    "prohibitRegexp": {
-                        "pattern": "mickey.mouse@hotmail.com",
-                        "flags": "i"
-                    },
-                    "message": "Mickey mouse isn't allowed"
-                }
-            ],
-            "defaultValue": {
-                "en-GB": "donald.duck@gmail.com"
+  val ShortText = json"""
+    {
+        "id": "shortTextField",
+        "name": "Short Text Field Unique URL",
+        "type": "Symbol",
+        "localized": false,
+        "required": false,
+        "validations": [
+            {
+                "unique": true
             },
-            "disabled": false,
-            "omitted": false
-        },
-        {
-            "id": "shortTextField",
-            "name": "Short Text Field Unique URL",
-            "type": "Symbol",
-            "localized": false,
-            "required": false,
-            "validations": [
-                {
-                    "unique": true
+            {
+                "size": {
+                    "min": 0,
+                    "max": 20
                 },
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 20
-                    },
-                    "message": "Must be between 0 and 20 characters"
+                "message": "Must be between 0 and 20 characters"
+            },
+            {
+                "regexp": {
+                    "pattern": "^(ftp|http|https):\/\/(\\w+:{0,1}\\w*@)?(\\S+)(:[0-9]+)?(\/|\/([\\w#!:.?+=&%@!\\-/]))?$"
                 },
-                {
-                    "regexp": {
-                        "pattern": "^(ftp|http|https):\/\/(\\w+:{0,1}\\w*@)?(\\S+)(:[0-9]+)?(\/|\/([\\w#!:.?+=&%@!\\-/]))?$",
-                        "flags": null
-                    },
-                    "message": "Must be a valid URL"
-                },
-                {
-                    "in": [
-                        "https://www.itv.com",
-                        "https://itv.com/news",
-                        "https://papertoilet.com/"
-                    ],
-                    "message": "Must match predefined URLs"
-                }
-            ],
-            "disabled": false,
-            "omitted": false
-        },
+                "message": "Must be a valid URL"
+            },
+            {
+                "in": [
+                    "https://www.itv.com",
+                    "https://itv.com/news",
+                    "https://papertoilet.com/"
+                ]
+            }
+        ],
+        "disabled": false
+    }
+    """
+  val ShortTextDefaulted = json"""
         {
             "id": "shortTextFieldDefaulted",
             "name": "Short Text Field Defaulted",
@@ -194,9 +132,11 @@ class CirceSpec extends ScalaCheckSuite:
             "defaultValue": {
                 "en-GB": "Eggy"
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val Boolean = json"""
         {
             "id": "booleanField",
             "name": "Boolean Field",
@@ -207,9 +147,11 @@ class CirceSpec extends ScalaCheckSuite:
             "defaultValue": {
                 "en-GB": true
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val Integer = json"""
         {
             "id": "integerField",
             "name": "Integer Field",
@@ -237,9 +179,11 @@ class CirceSpec extends ScalaCheckSuite:
             "defaultValue": {
                 "en-GB": -10
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val Decimal = json"""
         {
             "id": "decimalField",
             "name": "Decimal Field",
@@ -248,28 +192,22 @@ class CirceSpec extends ScalaCheckSuite:
             "required": true,
             "validations": [
                 {
-                    "range": {
-                        "min": 0,
-                        "max": 5
-                    },
-                    "message": "Range: [0, 5]"
-                },
-                {
                     "in": [
                         1.1,
                         2.2,
                         3.3,
                         4.4
-                    ],
-                    "message": "Invalid decimal value"
+                    ]
                 }
             ],
             "defaultValue": {
                 "en-GB": 2.2
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val Json = json"""
         {
             "id": "jsonField",
             "name": "Json Field",
@@ -282,12 +220,14 @@ class CirceSpec extends ScalaCheckSuite:
                         "min": 1,
                         "max": 10
                     },
-                    "message": "JSON must have between 1 and 10 properties"
+                    "message": null
                 }
             ],
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val LocalDateTime = json"""
         {
             "id": "localDateTimeField",
             "name": "Local Date Time Field",
@@ -297,19 +237,19 @@ class CirceSpec extends ScalaCheckSuite:
             "validations": [
                 {
                     "dateRange": {
-                        "after": null,
-                        "before": null,
-                        "max": "2023-05-26"
-                    },
-                    "message": "Not in date range"
+                        "min": null,
+                        "max": "2023-05-26T00:00:00Z"
+                    }
                 }
             ],
             "defaultValue": {
                 "en-GB": "2023-05-20T00:00+01:00"
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val ZonedDateTime = json"""
         {
             "id": "zonedDateTimeField",
             "name": "Zoned Date Time Field",
@@ -319,29 +259,180 @@ class CirceSpec extends ScalaCheckSuite:
             "validations": [
                 {
                     "dateRange": {
-                        "after": null,
-                        "before": null,
-                        "max": "2023-06-21"
-                    },
-                    "message": "Must be in range"
+                        "min": null,
+                        "max": "2023-06-21T00:00:00Z"
+                    }
                 }
             ],
             "defaultValue": {
                 "en-GB": "2023-05-30T00:00+01:00"
             },
-            "disabled": false,
-            "omitted": false
-        },
+            "disabled": false
+        }
+    """
+
+  val Location = json"""
         {
             "id": "locationField",
             "name": "Location Field",
             "type": "Location",
             "localized": false,
             "required": true,
-            "validations": [],
+            "disabled": false
+        }
+    """
+
+  val TextList = json"""
+        {
+            "id": "textListField",
+            "name": "Text List Field",
+            "type": "Array",
+            "localized": false,
+            "required": true,
+            "validations": [
+                {
+                    "size": {
+                        "min": 0,
+                        "max": 5
+                    },
+                    "message": "Must have 0-5 symbols"
+                }
+            ],
             "disabled": false,
-            "omitted": false
-        },
+            "items": {
+                "type": "Symbol",
+                "validations": [
+                    {
+                        "size": {
+                            "min": 0,
+                            "max": 10
+                        },
+                        "message": "Must be between 0 and 10 characters"
+                    },
+                    {
+                        "regexp": {
+                            "pattern": "[a-zA-Z]"
+                        },
+                        "message": "Should be some letters"
+                    },
+                    {
+                        "in": [
+                            "banana",
+                            "bread",
+                            "egg",
+                            "beans"
+                        ]
+                    }
+                ]
+            }
+        }
+    """
+
+  val Asset = json"""
+        {
+            "id": "assetField",
+            "name": "Asset Field",
+            "type": "Link",
+            "localized": false,
+            "required": true,
+            "validations": [
+                {
+                    "linkMimetypeGroup": [
+                        "attachment",
+                        "plaintext"
+                    ]
+                }
+            ],
+            "disabled": false,
+            "linkType": "Asset"
+        }
+    """
+
+  val MultipleAssets = json"""
+        {
+            "id": "multipleAssetsField",
+            "name": "Multiple Assets Field",
+            "type": "Array",
+            "localized": false,
+            "required": true,
+            "validations": [
+                {
+                "size": {
+                    "min": 0,
+                    "max": 6
+                },
+                "message": "0-6 assets pls"
+                }
+            ],
+            "disabled": false,
+            "items": {
+                "type": "Link",
+                "validations": [
+                {
+                    "linkMimetypeGroup": [
+                    "image",
+                    "audio"
+                    ]
+                }
+                ],
+                "linkType": "Asset"
+            }
+        }
+    """
+
+  val Entry = json"""
+        {
+            "id": "entryReferenceField",
+            "name": "Entry Reference Field",
+            "type": "Link",
+            "localized": false,
+            "required": true,
+            "validations": [
+                {
+                    "linkContentType": [
+                        "image",
+                        "quotation"
+                    ]
+                }
+            ],
+            "disabled": false,
+            "linkType": "Entry"
+        }
+    """
+
+  val MultipleEntries = json"""
+        {
+            "id": "multipleEntryReferencesField",
+            "name": "Multiple Entry References Field",
+            "type": "Array",
+            "localized": false,
+            "required": true,
+            "validations": [
+                {
+                    "size": {
+                        "min": 0,
+                        "max": 11
+                    },
+                    "message": "0-11 pls"
+                }
+            ],
+            "disabled": false,
+            "items": {
+                "type": "Link",
+                "validations": [
+                    {
+                        "linkContentType": [
+                            "collection",
+                            "accordion"
+                        ]
+                    }
+                ],
+                "linkType": "Entry"
+            }
+        }
+    """
+
+  val RichText = json"""
         {
             "id": "richTextField",
             "name": "Rich Text Field",
@@ -349,13 +440,6 @@ class CirceSpec extends ScalaCheckSuite:
             "localized": false,
             "required": true,
             "validations": [
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 1000
-                    },
-                    "message": "Must be between 0 and 1000 characters"
-                },
                 {
                     "enabledMarks": [
                         "bold",
@@ -365,7 +449,7 @@ class CirceSpec extends ScalaCheckSuite:
                         "superscript",
                         "subscript"
                     ],
-                    "message": "Only bold, italic, underline, code, superscript, and subscript marks are allowed"
+                    "message": "Only underline, subscript, italic, bold, superscript and code marks are allowed"
                 },
                 {
                     "enabledNodeTypes": [
@@ -387,7 +471,7 @@ class CirceSpec extends ScalaCheckSuite:
                         "asset-hyperlink",
                         "embedded-entry-inline"
                     ],
-                    "message": "Only heading 1, heading 2, heading 3, heading 4, heading 5, heading 6, ordered list, unordered list, horizontal rule, quote, block entry, asset, table, link to Url, link to entry, link to asset, and inline entry nodes are allowed"
+                    "message": "Only asset hyperlink, embedded asset block, embedded entry block, heading 5, heading 6, hyperlink, heading 3, heading 2, table, hr, heading 4, unordered list, ordered list, blockquote, entry hyperlink, heading 1 and embedded entry inline nodes are allowed"
                 },
                 {
                     "nodes": {
@@ -460,175 +544,6 @@ class CirceSpec extends ScalaCheckSuite:
                     }
                 }
             ],
-            "disabled": false,
-            "omitted": false
-        },
-        {
-            "id": "textListField",
-            "name": "Text List Field",
-            "type": "Array",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 5
-                    },
-                    "message": "Must have 0-5 symbols"
-                }
-            ],
-            "disabled": false,
-            "omitted": false,
-            "items": {
-                "type": "Symbol",
-                "validations": [
-                    {
-                        "size": {
-                            "min": 0,
-                            "max": 10
-                        },
-                        "message": "Must be between 0 and 10 characters"
-                    },
-                    {
-                        "regexp": {
-                            "pattern": "[a-zA-Z]",
-                            "flags": "g"
-                        },
-                        "message": "Should be some letters"
-                    },
-                    {
-                        "in": [
-                            "banana",
-                            "bread",
-                            "egg",
-                            "beans"
-                        ],
-                        "message": "Must be banana bread egg beans"
-                    }
-                ]
-            }
-        },
-        {
-            "id": "assetField",
-            "name": "Asset Field",
-            "type": "Link",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "linkMimetypeGroup": [
-                        "attachment",
-                        "plaintext"
-                    ],
-                    "message": "Only attachment or plaintext allowed"
-                },
-                {
-                    "assetImageDimensions": {
-                        "width": {
-                            "min": 6,
-                            "max": null
-                        },
-                        "height": {
-                            "min": 501,
-                            "max": null
-                        }
-                    },
-                    "message": "Must be at least 600x500"
-                },
-                {
-                    "assetFileSize": {
-                        "min": 0,
-                        "max": 104857600
-                    },
-                    "message": "Must be 0-100MB"
-                }
-            ],
-            "disabled": false,
-            "omitted": false,
-            "linkType": "Asset"
-        },
-        {
-            "id": "multipleAssetsField",
-            "name": "Multiple Assets Field",
-            "type": "Array",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 6
-                    },
-                    "message": "0-6 assets pls"
-                }
-            ],
-            "disabled": false,
-            "omitted": false,
-            "items": {
-                "type": "Link",
-                "validations": [
-                    {
-                        "linkMimetypeGroup": [
-                            "image",
-                            "audio"
-                        ],
-                        "message": "image or audio pls"
-                    }
-                ],
-                "linkType": "Asset"
-            }
-        },
-        {
-            "id": "entryReferenceField",
-            "name": "Entry Reference Field",
-            "type": "Link",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "linkContentType": [
-                        "image",
-                        "quotation"
-                    ],
-                    "message": "Invalid content type for entry"
-                }
-            ],
-            "disabled": false,
-            "omitted": false,
-            "linkType": "Entry"
-        },
-        {
-            "id": "multipleEntryReferencesField",
-            "name": "Multiple Entry References Field",
-            "type": "Array",
-            "localized": false,
-            "required": true,
-            "validations": [
-                {
-                    "size": {
-                        "min": 0,
-                        "max": 11
-                    },
-                    "message": "0-11 pls"
-                }
-            ],
-            "disabled": false,
-            "omitted": false,
-            "items": {
-                "type": "Link",
-                "validations": [
-                    {
-                        "linkContentType": [
-                            "collection",
-                            "accordion"
-                        ],
-                        "message": "Invalid entry type"
-                    }
-                ],
-                "linkType": "Entry"
-            }
+            "disabled": false
         }
-    ]
-}
-  """
+    """
