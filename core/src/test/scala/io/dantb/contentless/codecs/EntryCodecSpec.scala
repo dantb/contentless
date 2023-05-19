@@ -29,18 +29,18 @@ class EntryCodecSpec extends ScalaCheckSuite:
   }
 
   property("text field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
-      val fieldCodec        = text(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = false, None, None, None)
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[String], unique: Boolean) =>
+      val fieldCodec        = text(id, name, defaultValue = default, unique = unique)
+      val expectedFieldType = FieldType.Text(longText = false, None, None, None, unique)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
   }
 
   property("long text field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[String]) =>
-      val fieldCodec        = longText(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Text(longText = true, None, None, None)
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[String], unique: Boolean) =>
+      val fieldCodec        = longText(id, name, defaultValue = default, unique = unique)
+      val expectedFieldType = FieldType.Text(longText = true, None, None, None, unique)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -48,9 +48,16 @@ class EntryCodecSpec extends ScalaCheckSuite:
 
   property("int field") {
     forAll {
-      (id: String, name: String, disabled: Boolean, default: Option[Int], allowedValues: Option[NonEmptyList[Int]]) =>
-        val fieldCodec        = int(id, name, default, allowedValues)
-        val expectedFieldType = FieldType.Integer(allowedValues)
+      (
+          id: String,
+          name: String,
+          disabled: Boolean,
+          default: Option[Int],
+          allowedValues: Option[NonEmptyList[Int]],
+          unique: Boolean
+      ) =>
+        val fieldCodec        = int(id, name, default, allowedValues, unique = unique)
+        val expectedFieldType = FieldType.Integer(allowedValues, None, unique)
 
         assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -58,9 +65,16 @@ class EntryCodecSpec extends ScalaCheckSuite:
 
   property("decimal field") {
     forAll {
-      (id: String, name: String, disabled: Boolean, default: Option[Double], allowedValues: Option[NonEmptyList[Double]]) =>
-        val fieldCodec        = decimal(id, name, default, allowedValues)
-        val expectedFieldType = FieldType.Number(allowedValues)
+      (
+          id: String,
+          name: String,
+          disabled: Boolean,
+          default: Option[Double],
+          allowedValues: Option[NonEmptyList[Double]],
+          unique: Boolean
+      ) =>
+        val fieldCodec        = decimal(id, name, default, allowedValues, unique = unique)
+        val expectedFieldType = FieldType.Number(allowedValues, unique)
 
         assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }
@@ -166,9 +180,9 @@ class EntryCodecSpec extends ScalaCheckSuite:
   }
 
   property("text list field") {
-    forAll { (id: String, name: String, disabled: Boolean, default: Option[List[String]]) =>
-      val fieldCodec        = textList(id, name, defaultValue = default)
-      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, None, None, None), None)
+    forAll { (id: String, name: String, disabled: Boolean, default: Option[List[String]], unique: Boolean) =>
+      val fieldCodec        = textList(id, name, defaultValue = default, unique = unique)
+      val expectedFieldType = FieldType.Array(FieldType.Text(longText = false, None, None, None, unique), None)
 
       assertField(fieldCodec, id, name, disabled, expectedFieldType, default.map(_.asJson))
     }

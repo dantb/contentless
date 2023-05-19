@@ -38,10 +38,12 @@ object RichText:
   case class Document(content: List[Node]) extends Node
 
   enum Mark(val asString: String):
-    case Bold      extends Mark("bold")
-    case Italic    extends Mark("italic")
-    case Underline extends Mark("underline")
-    case Code      extends Mark("code")
+    case Bold        extends Mark("bold")
+    case Italic      extends Mark("italic")
+    case Underline   extends Mark("underline")
+    case Code        extends Mark("code")
+    case Subscript   extends Mark("subscript")
+    case Superscript extends Mark("superscript")
   object Mark:
     def from(str: String): Option[Mark] = Mark.values.find(_.asString == str)
 

@@ -10,7 +10,7 @@ import org.scalacheck.Arbitrary.{arbitrary as arb}
 object arbitrary:
 
   // library types
-  given [A: Arbitrary]: Arbitrary[NonEmptyList[A]] = Arbitrary(genNel(summon[Arbitrary[A]].arbitrary))
+  given [A: Arbitrary]: Arbitrary[NonEmptyList[A]] = Arbitrary(genNel(arb[A]))
 
   // newtypes
   given Arbitrary[ContentTypeId] = Arbitrary(genUuidString.map(ContentTypeId(_)))
@@ -50,11 +50,16 @@ object arbitrary:
     linkContentType <- opt[LinkContentType]
   yield RichTextNodes.EntryInline(size, linkContentType)
 
-  def genSize: Gen[Validation.Size] = for
-    min     <- opt[Int]
-    max     <- opt[Int]
-    message <- opt[String]
-  yield Validation.Size(min, max, message)
+  def genSize: Gen[Validation.Size] =
+    for
+      min     <- opt[Int]
+      max     <- opt[Int]
+      message <- opt[String]
+      tpe <- Gen.oneOf["size" | "range"](
+        "size",
+        "range"
+      ) // tried to generalise this but you get an "Implicit search problem too large"
+    yield Validation.Size(min, max, message, tpe)
 
   def genLinkContentType: Gen[LinkContentType] = for
     allowedContentTypes <- arb[Set[String]]

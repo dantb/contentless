@@ -1,6 +1,6 @@
 package io.dantb.contentless.codecs
 
-import java.time.ZonedDateTime
+import java.time.{LocalDate, LocalDateTime, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -395,12 +395,12 @@ object implicits:
     ).mapN(WebhookDefinition.apply)
 
   implicit def fieldTypeEncoder[A <: FieldType]: Encoder[A] = {
-    case t @ FieldType.Text(true, _, _, _) =>
+    case t @ FieldType.Text(true, _, _, _, _) =>
       obj(
         "type"        -> "Text".asJson,
         "validations" -> t.validations.asJson
       )
-    case t @ FieldType.Text(false, _, _, _) =>
+    case t @ FieldType.Text(false, _, _, _, _) =>
       obj(
         "type"        -> "Symbol".asJson,
         "validations" -> t.validations.asJson
@@ -426,7 +426,11 @@ object implicits:
         "type"        -> "Number".asJson,
         "validations" -> n.validations.asJson
       )
-    case FieldType.Boolean => obj("type" -> "Boolean".asJson)
+    case FieldType.Boolean =>
+      obj(
+        "type"        -> "Boolean".asJson,
+        "validations" -> Json.arr()
+      )
     case j: FieldType.Json =>
       obj(
         "type"        -> "Object".asJson,
@@ -452,17 +456,21 @@ object implicits:
       )
   }
 
+  final case class Validations(s: Set[Validation])
+  given Decoder[Validations] = c =>
+    c.downField("validations").success.map(_.as[Set[Validation]].map(Validations(_))).getOrElse(Right(Validations(Set())))
+
   given fieldTypeDecoder: Decoder[FieldType] = c =>
     c.downField("type").as[String].flatMap {
-      case "Text"     => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(true, _))
-      case "Symbol"   => c.downField("validations").as[Set[Validation]].map(FieldType.Text.fromValidations(false, _))
-      case "Integer"  => c.downField("validations").as[Set[Validation]].map(FieldType.Integer.fromValidations(_))
-      case "Number"   => c.downField("validations").as[Set[Validation]].map(FieldType.Number.fromValidations(_))
+      case "Text"     => c.as[Validations].map(v => FieldType.Text.fromValidations(true, v.s))
+      case "Symbol"   => c.as[Validations].map(v => FieldType.Text.fromValidations(false, v.s))
+      case "Integer"  => c.as[Validations].map(v => FieldType.Integer.fromValidations(v.s))
+      case "Number"   => c.as[Validations].map(v => FieldType.Number.fromValidations(v.s))
       case "Boolean"  => FieldType.Boolean.asRight
-      case "Object"   => c.downField("validations").as[Set[Validation]].map(FieldType.Json.fromValidations(_))
-      case "Date"     => c.downField("validations").as[Set[Validation]].map(FieldType.DateTime.fromValidations(_))
+      case "Object"   => c.as[Validations].map(v => FieldType.Json.fromValidations(v.s))
+      case "Date"     => c.as[Validations].map(v => FieldType.DateTime.fromValidations(v.s))
       case "Location" => FieldType.Location.asRight
-      case "RichText" => c.downField("validations").as[Set[Validation]].map(FieldType.RichText.fromValidations(_))
+      case "RichText" => c.as[Validations].map(v => FieldType.RichText.fromValidations(v.s))
       case "Link" =>
         c.downField("linkType").as[String].flatMap {
           case "Asset" =>
@@ -644,11 +652,20 @@ object implicits:
     )
 
   given validationSizeDecoder: Decoder[Validation.Size] = c =>
-    for
-      min     <- c.downField("size").downField("min").as[Option[Int]]
-      max     <- c.downField("size").downField("max").as[Option[Int]]
-      message <- c.downField("message").as[Option[String]]
-    yield Validation.Size(min, max, message)
+    val size = c.downField("size")
+    if size.succeeded then
+      for
+        min     <- size.downField("min").as[Option[Int]]
+        max     <- size.downField("max").as[Option[Int]]
+        message <- c.downField("message").as[Option[String]]
+      yield Validation.Size(min, max, message, "size")
+    else
+      val range = c.downField("range")
+      for
+        min     <- range.downField("min").as[Option[Int]]
+        max     <- range.downField("max").as[Option[Int]]
+        message <- c.downField("message").as[Option[String]]
+      yield Validation.Size(min, max, message, "range")
 
   given regexpDecoder: Decoder[Regexp] = Decoder[String].map(Regexp.of)
 
@@ -657,6 +674,17 @@ object implicits:
       pattern <- c.downField("regexp").get[Regexp]("pattern")
       message <- c.get[Option[String]]("message")
     yield Validation.RegexpValidation(pattern, message)
+
+  given Decoder[Validation.DateRange] = c =>
+    final case class AnyDateTime(zdt: ZonedDateTime)
+    given Decoder[AnyDateTime] = Decoder[ZonedDateTime]
+      .or(Decoder[LocalDateTime].map(_.atZone(DefaultZone)))
+      .or(Decoder[LocalDate].map(_.atStartOfDay(DefaultZone)))
+      .map(AnyDateTime(_))
+    for
+      min <- c.downField("dateRange").get[Option[AnyDateTime]]("min")
+      max <- c.downField("dateRange").get[Option[AnyDateTime]]("max")
+    yield Validation.DateRange(min.map(_.zdt), max.map(_.zdt))
 
   given Decoder[RichTextNodeType] =
     Decoder[String].emap(r => RichTextNodeType.from(r).toRight(s"Invalid rich text node type: $r"))
@@ -695,10 +723,21 @@ object implicits:
     yield Validation.RichTextNodes(assetHyperlinkSize, entryHyperlink, assetBlockSize, entryBlock, entryInline)
 
   given validationDecoder: Decoder[Validation] = c =>
-    c.downField("in").success.map(_.as[NonEmptyList[String]].map[Validation](Validation.ContainedIn.apply)) orElse
-      c.downField("in").success.map(_.as[NonEmptyList[Int]].map[Validation](Validation.ContainedInInt.apply)) orElse
-      c.downField("in").success.map(_.as[NonEmptyList[Double]].map[Validation](Validation.ContainedInDecimal.apply)) orElse
-      c.downField("enabledMarks").success.map(_.as[Set[Mark]].map[Validation](Validation.RichTextMarks.apply)) orElse
+    c.downField("in")
+      .success
+      .map(x =>
+        x.as[NonEmptyList[String]]
+          .map[Validation](Validation.ContainedIn.apply)
+          .orElse(x.as[NonEmptyList[Int]].map[Validation](Validation.ContainedInInt.apply))
+          .orElse(x.as[NonEmptyList[Double]].map[Validation](Validation.ContainedInDecimal.apply))
+      ) orElse
+      c.downField("enabledMarks")
+        .success
+        .map(
+          _.as[Set[String]]
+            .flatMap(_.toList.traverse(Mark.from(_).toRight(DecodingFailure("Invalid mark", Nil))))
+            .map[Validation](x => Validation.RichTextMarks(x.toSet))
+        ) orElse
       c
         .downField("enabledNodeTypes")
         .success
@@ -706,6 +745,8 @@ object implicits:
       c.downField("unique").success.map(_.as[Boolean].as[Validation](Validation.Unique)) orElse
       c.downField("regexp").success.as(c.as[Validation.RegexpValidation]) orElse
       c.downField("size").success.as(c.as[Validation.Size]) orElse
+      c.downField("range").success.as(c.as[Validation.Size]) orElse
+      c.downField("dateRange").success.as(c.as[Validation.DateRange]) orElse
       c.downField("nodes").success.as(c.as[Validation.RichTextNodes]) orElse
       c.downField("linkContentType").success.as(c.as[Validation.LinkContentType]) getOrElse
       DecodingFailure(s"Failed to match a validation rule on $c", Nil).asLeft
@@ -731,7 +772,7 @@ object implicits:
       obj("in" -> allowedValues.asJson)
     case v @ Validation.RichTextMarks(enabledMarks) =>
       obj(
-        "enabledMarks" -> enabledMarks.asJson,
+        "enabledMarks" -> enabledMarks.map(_.asString).asJson,
         "message"      -> v.message.asJson
       )
     case v @ Validation.RichTextNodeTypes(enabledNodeTypes) =>
@@ -748,9 +789,9 @@ object implicits:
         ),
         "message" -> message.asJson
       )
-    case Validation.Size(min, max, message) =>
+    case Validation.Size(min, max, message, tpe) =>
       obj(
-        "size" -> obj(
+        tpe -> obj(
           "min" -> min.asJson,
           "max" -> max.asJson
         ),
