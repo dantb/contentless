@@ -138,7 +138,7 @@ sealed abstract case class FieldCodec[A](
       override def read(fields: Map[String, Json]): Either[String, Option[A]] =
         fields
           .get(fieldId)
-          .traverse[Either[String, *], A] {
+          .traverse[Either[String, _], A] {
             _.as[Map[String, Json]]
               .leftMap(_.toString())
               .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
