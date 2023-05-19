@@ -138,7 +138,7 @@ sealed abstract case class FieldCodec[A](
       override def read(fields: Map[String, Json]): Either[String, Option[A]] =
         fields
           .get(fieldId)
-          .traverse[Either[String, _], A] {
+          .traverse[Either[String, *], A] {
             _.as[Map[String, Json]]
               .leftMap(_.toString())
               .flatMap(_.get(locale.code).toRight(s"Localization not found for ${locale.code}"))
@@ -346,8 +346,8 @@ object FieldCodec:
     def richText(
         fieldId: String,
         fieldName: String,
-        allowedNodeTypes: Set[RichTextNodeType] = RichTextNodeType.All,
-        allowedMarks: Set[Mark] = RichText.Mark.All,
+        allowedNodeTypes: Set[RichTextNodeType] = RichTextNodeType.values.toSet,
+        allowedMarks: Set[Mark] = RichText.Mark.values.toSet,
         entryHyperlink: Option[RichTextNodes.EntryHyperlink] = None,
         entryBlock: Option[RichTextNodes.EntryBlock] = None,
         entryInline: Option[RichTextNodes.EntryInline] = None,
