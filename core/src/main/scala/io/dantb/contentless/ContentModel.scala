@@ -97,24 +97,15 @@ object Validation:
   final case class LinkContentType(allowedContentTypes: Set[String], message: Option[String]) extends Validation
 
   final case class RichTextMarks(allowedValues: Set[Mark]) extends Validation:
-    def message: Option[String] =
-      val size = allowedValues.size
-      size match
-        case 0 => None
-        case 1 => s"Only ${allowedValues.head.asString} marks are allowed".some
-        case other =>
-          val (allButOne, last) = allowedValues.map(_.asString).splitAt(size - 1)
-          s"Only ${allButOne.mkString(", ")} and ${last.head} marks are allowed".some
+    def message: Option[String] = allowedValuesMessage(allowedValues.map(_.asString), "marks")
 
   final case class RichTextNodeTypes(allowedValues: Set[RichTextNodeType]) extends Validation:
-    def message: Option[String] =
-      val size = allowedValues.size
-      size match
-        case 0 => None
-        case 1 => s"Only ${allowedValues.head.asString} nodes are allowed".some
-        case other =>
-          val (allButOne, last) = allowedValues.map(_.asString).splitAt(size - 1)
-          s"Only ${allButOne.map(_.replaceAll("-", " ")).mkString(", ")} and ${last.head} nodes are allowed".some
+    def message: Option[String] = allowedValuesMessage(allowedValues.map(_.asString.replaceAll("-", " ")), "nodes")
+
+  private def allowedValuesMessage(s: Set[String], tpe: "nodes" | "marks"): Option[String] = s.toList match
+    case x :: Nil => s"Only $x $tpe are allowed".some
+    case xs :+ last => s"Only ${xs.mkString(", ")} and $last $tpe are allowed".some
+    case _ => None
 
   final case class Size(min: Option[Int], max: Option[Int], message: Option[String]) extends Validation
   final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime]) extends Validation
