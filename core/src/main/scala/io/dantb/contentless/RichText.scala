@@ -21,26 +21,7 @@ enum RichTextNodeType(val asString: String):
 
 object RichTextNodeType:
   import RichTextNodeType.*
-  val All: Set[RichTextNodeType] = Set(
-    Heading1,
-    Heading2,
-    Heading3,
-    Heading4,
-    Heading5,
-    Heading6,
-    Quote,
-    Hr,
-    OrderedList,
-    UnorderedList,
-    Hyperlink,
-    EntryLinkInline,
-    EntryHyperlink,
-    EntryLinkBlock,
-    AssetHyperlink,
-    AssetLinkBlock,
-    Table
-  )
-  def from(str: String): Option[RichTextNodeType] = All.find(_.asString == str)
+  def from(str: String): Option[RichTextNodeType] = RichTextNodeType.values.find(_.asString == str)
 
 object RichText:
 
@@ -62,8 +43,7 @@ object RichText:
     case Underline extends Mark("underline")
     case Code      extends Mark("code")
   object Mark:
-    val All: Set[Mark]                  = Set(Mark.Bold, Mark.Italic, Mark.Underline, Mark.Code)
-    def from(str: String): Option[Mark] = All.find(_.asString == str)
+    def from(str: String): Option[Mark] = Mark.values.find(_.asString == str)
 
   case class Heading1(content: List[Node])   extends Block
   case class Heading2(content: List[Node])   extends Block

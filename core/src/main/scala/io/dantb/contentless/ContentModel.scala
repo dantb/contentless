@@ -103,9 +103,9 @@ object Validation:
     def message: Option[String] = allowedValuesMessage(allowedValues.map(_.asString.replaceAll("-", " ")), "nodes")
 
   private def allowedValuesMessage(s: Set[String], tpe: "nodes" | "marks"): Option[String] = s.toList match
-    case x :: Nil => s"Only $x $tpe are allowed".some
+    case x :: Nil   => s"Only $x $tpe are allowed".some
     case xs :+ last => s"Only ${xs.mkString(", ")} and $last $tpe are allowed".some
-    case _ => None
+    case _          => None
 
   final case class Size(min: Option[Int], max: Option[Int], message: Option[String]) extends Validation
   final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime]) extends Validation
@@ -127,19 +127,10 @@ object Validation:
   object Regexp:
     def unapply(r: Regexp): Some[Regex] = Some(r.underlying)
 
-    given Eq[Regexp] = Eq.fromUniversalEquals
+    import Regexp.*
+    val Predefined = List(Url, Email, Slug, DateUS, DateEurope, Time12H, Time24H, PhoneNumUS, ZipCodeUS)
 
-    def of(raw: String): Regexp =
-      if raw == Regexp.Url.underlying.toString() then Regexp.Url
-      else if raw == Regexp.Email.underlying.toString() then Regexp.Email
-      else if raw == Regexp.Slug.underlying.toString() then Regexp.Slug
-      else if raw == Regexp.DateUS.underlying.toString() then Regexp.DateUS
-      else if raw == Regexp.DateEurope.underlying.toString() then Regexp.DateEurope
-      else if raw == Regexp.Time12H.underlying.toString() then Regexp.Time12H
-      else if raw == Regexp.Time24H.underlying.toString() then Regexp.Time24H
-      else if raw == Regexp.PhoneNumUS.underlying.toString() then Regexp.PhoneNumUS
-      else if raw == Regexp.ZipCodeUS.underlying.toString() then Regexp.ZipCodeUS
-      else Regexp.Custom(raw.r)
+    def of(raw: String): Regexp = Predefined.find(_.underlying.toString() === raw).getOrElse(Regexp.Custom(raw.r))
 
 final case class ContentType(
     id: ContentTypeId,

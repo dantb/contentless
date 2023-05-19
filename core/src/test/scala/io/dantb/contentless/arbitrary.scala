@@ -29,24 +29,11 @@ object arbitrary:
 
   def genUuidString: Gen[String] = Gen.uuid.map(_.toString())
 
-  def genMimeTypeGroup: Gen[MimeTypeGroup] = Gen.oneOf(
-    MimeTypeGroup.Archive,
-    MimeTypeGroup.Attachment,
-    MimeTypeGroup.Audio,
-    MimeTypeGroup.Code,
-    MimeTypeGroup.Image,
-    MimeTypeGroup.Markup,
-    MimeTypeGroup.Pdfdocument,
-    MimeTypeGroup.Plaintext,
-    MimeTypeGroup.Presentation,
-    MimeTypeGroup.Richtext,
-    MimeTypeGroup.Spreadsheet,
-    MimeTypeGroup.Video
-  )
+  def genMimeTypeGroup: Gen[MimeTypeGroup] = Gen.oneOf(MimeTypeGroup.values.toList)
 
-  def genRichTextNodeType: Gen[RichTextNodeType] = Gen.oneOf(RichTextNodeType.All)
+  def genRichTextNodeType: Gen[RichTextNodeType] = Gen.oneOf(RichTextNodeType.values.toList)
 
-  def genMark: Gen[Mark] = Gen.oneOf(Mark.All)
+  def genMark: Gen[Mark] = Gen.oneOf(Mark.values.toList)
 
   def genEntryHyperlink: Gen[RichTextNodes.EntryHyperlink] = for
     size            <- opt[Validation.Size]
