@@ -109,6 +109,10 @@ object Validation:
 
   final case class Size(min: Option[Int], max: Option[Int], message: Option[String], tpe: "size" | "range")
       extends Validation
+  object Size:
+    def range(min: Int, max: Int, message: String): Size = Size(min.some, max.some, message.some, "range")
+    def size(min: Int, max: Int, message: String): Size  = Size(min.some, max.some, message.some, "size")
+
   final case class DateRange(min: Option[ZonedDateTime], max: Option[ZonedDateTime]) extends Validation
   case object Unique                                                                 extends Validation
 
