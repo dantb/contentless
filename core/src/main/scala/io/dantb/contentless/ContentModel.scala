@@ -138,27 +138,3 @@ object Validation:
     val Predefined = List(Url, Email, Slug, DateUS, DateEurope, Time12H, Time24H, PhoneNumUS, ZipCodeUS)
 
     def of(raw: String): Regexp = Predefined.find(_.underlying.toString() === raw).getOrElse(Regexp.Custom(raw.r))
-
-final case class ContentType(
-    id: ContentTypeId,
-    name: String,
-    displayField: Option[String],
-    description: Option[String],
-    fields: List[Field],
-    version: Option[Int]
-):
-  def isCompatible(other: ContentType): Boolean =
-    id === other.id &&
-      name === other.name &&
-      displayField === other.displayField &&
-      other.fields.filter(_.required).toSet === fields.filter(_.required).toSet &&
-      other.fields.filterNot(_.required).toSet.subsetOf(fields.filterNot(_.required).toSet)
-
-object ContentType:
-
-  given eq: Eq[ContentType] = (a, b) =>
-    a.id === b.id &&
-      a.name === b.name &&
-      a.description === b.description &&
-      a.displayField === b.displayField &&
-      a.fields === b.fields

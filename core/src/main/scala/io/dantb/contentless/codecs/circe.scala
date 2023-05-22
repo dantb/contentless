@@ -10,7 +10,6 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.Json.obj
 import io.circe.syntax.*
 import io.dantb.contentless.*
-import io.dantb.contentless.Entry.{Authors, Timestamps}
 import io.dantb.contentless.RichText.Mark
 import io.dantb.contentless.Validation.Regexp
 import io.dantb.contentless.appearance.*
@@ -19,73 +18,6 @@ import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.codecs.FieldCodec.DefaultZone
 
 object implicits:
-  implicit def contentfulEntryEncoder[A](using codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
-    obj(
-      "fields" -> codec.write(value.fields).asJson
-    )
-
-  given timestampsDecoder: Decoder[Timestamps] = c =>
-    for
-      createdAt        <- c.downField("createdAt").as[Option[ZonedDateTime]]
-      updatedAt        <- c.downField("updatedAt").as[Option[ZonedDateTime]]
-      publishedAt      <- c.downField("publishedAt").as[Option[ZonedDateTime]]
-      firstPublishedAt <- c.downField("firstPublishedAt").as[Option[ZonedDateTime]]
-    yield Timestamps(
-      createdAt = createdAt,
-      updatedAt = updatedAt,
-      publishedAt = publishedAt,
-      firstPublishedAt = firstPublishedAt
-    )
-  given authorsDecoder: Decoder[Authors] = c =>
-    for
-      createdBy   <- c.downField("createdBy").as[Option[Reference]]
-      updatedBy   <- c.downField("updatedBy").as[Option[Reference]]
-      publishedBy <- c.downField("publishedBy").as[Option[Reference]]
-    yield Authors(
-      createdBy = createdBy,
-      updatedBy = updatedBy,
-      publishedBy = publishedBy
-    )
-
-  implicit def contentfulEntryDecoder[A](using codec: EntryCodec[A]): Decoder[Entry[A]] = c =>
-    for
-      id <- c.downField("sys").get[Option[String]]("id")
-      fields <- c
-        .get[Map[String, Json]]("fields")
-        .flatMap(json => codec.read(json).leftMap(err => DecodingFailure(err, Nil)))
-      version    <- c.downField("sys").get[Option[Int]]("version")
-      space      <- c.downField("sys").get[Option[Reference]]("space")
-      env        <- c.downField("sys").get[Option[Reference]]("environment")
-      timestamps <- c.get[Timestamps]("sys")
-      authors    <- c.get[Authors]("sys")
-    yield Entry[A](
-      id = id,
-      fields = fields,
-      version = version,
-      space = space,
-      environment = env,
-      timestamps = timestamps,
-      authors = authors
-    )
-
-  implicit def contentfulEntriesAndIncludesDecoder[A](using
-      decoder: Decoder[Entry[A]]
-  ): Decoder[EntriesAndIncludes[A]] = c =>
-    (
-      c.get[List[Entry[A]]]("items"),
-      c.get[Int]("skip"),
-      c.get[Int]("limit"),
-      c.get[Int]("total")
-    ).mapN { case (entries, skip, limit, total) =>
-      EntriesAndIncludes[A](
-        entries = entries,
-        includedEntries = c.downField("includes").get[List[Json]]("Entry").getOrElse(Nil),
-        includedAssets = c.downField("includes").get[List[Json]]("Asset").getOrElse(Nil),
-        skip = skip,
-        limit = limit,
-        total = total
-      )
-    }
 
   given zonedDateTimeEncoder: Encoder[ZonedDateTime] = zdt =>
     Json.fromString(
@@ -115,20 +47,6 @@ object implicits:
     case "video"        => MimeTypeGroup.Video.asRight
     case other          => s"Unknown mime type: $other".asLeft
   }
-
-  given assetDataEncoder: Encoder[File] = data =>
-    obj(
-      "contentType" -> data.contentType.asJson,
-      "fileName"    -> data.fileName.asJson,
-      "upload"      -> data.upload.asJson
-    )
-
-  given assetDataDecoder: Decoder[File] = c =>
-    (
-      c.downField("contentType").as[String],
-      c.downField("fileName").as[String],
-      c.get[String]("upload").orElse(c.get[String]("url"))
-    ).mapN(File.apply)
 
   given markEncoder: Encoder[RichText.Mark] = mark =>
     obj(
@@ -482,31 +400,6 @@ object implicits:
 
   given mediaDecoder: Decoder[Media] = _.downField("sys").downField("id").as[String].map(Media.apply)
 
-  given contentTypeEncoder: Encoder[ContentType] = ct =>
-    obj(
-      "displayField" -> ct.displayField.asJson,
-      "name"         -> ct.name.asJson,
-      "description"  -> ct.description.asJson,
-      "fields"       -> ct.fields.asJson
-    )
-
-  given contentTypeDecoder: Decoder[ContentType] = c =>
-    for
-      id           <- c.downField("sys").downField("id").as[ContentTypeId]
-      name         <- c.downField("name").as[String]
-      displayField <- c.downField("displayField").as[Option[String]]
-      description  <- c.downField("description").as[Option[String]]
-      fields       <- c.downField("fields").as[List[Field]]
-      version      <- c.downField("sys").downField("version").as[Option[Int]]
-    yield ContentType(
-      id = id,
-      name = name,
-      displayField = displayField,
-      description = description,
-      fields = fields,
-      version = version
-    )
-
   given validationSizeDecoder: Decoder[Validation.Size] = c =>
     val size = c.downField("size")
     if size.succeeded then
@@ -721,145 +614,3 @@ object implicits:
         "nodes" -> nodes
       )
   }
-
-  given controlEnc: Encoder[FieldControl] = fc =>
-    val maybeSettings: Option[Json] =
-      if fc.settings.nonEmpty then
-        Some(fc.settings.map(setting => setting.name -> encodeSettingValue(setting)).toMap.asJson)
-      else None
-
-    Json.fromFields(
-      List(
-        "fieldId"         -> fc.fieldId.asJson,
-        "widgetId"        -> fc.control.id.asJson,
-        "widgetNamespace" -> fc.control.namespace.asJson
-      ) ++ maybeSettings.map("settings" -> _)
-    )
-
-  def encodeSettingValue(setting: FieldControlSetting): Json =
-    setting match
-      case Rating.Stars(value)                       => value.asJson
-      case DatePicker.Format(value)                  => value.asJson
-      case LinksEditor.BulkEditing(value)            => value.asJson
-      case FieldControlSetting.HelpText(value)       => value.asJson
-      case DatePicker.ClockType(value)               => value.asJson
-      case Boolean.TrueLabel(value)                  => value.asJson
-      case Boolean.FalseLabel(value)                 => value.asJson
-      case LinksEditor.ShowLinkEntityAction(value)   => value.asJson
-      case LinksEditor.ShowCreateEntityAction(value) => value.asJson
-      case setting: CustomSetting                    => setting.toJson
-
-  given sidebarEnc: Encoder[SidebarWidget] = control =>
-    obj("widgetId" -> control.id.asJson, "widgetNamespace" -> control.namespace.asJson)
-
-  given editorEnc: Encoder[Editor] = control =>
-    val disabled = if control.disabled then Some("disabled" -> true.asJson) else None
-    Json.fromFields(
-      List(
-        "widgetId"        -> control.id.asJson,
-        "widgetNamespace" -> control.namespace.asJson
-      ) ++ disabled // don't include if it's not disabled (from the API's current behaviour)
-    )
-
-  given interfaceEnc: Encoder[EditorInterface] = interface =>
-    def encNonEmpty[A: Encoder](key: String, list: List[A]): Option[(String, Json)] =
-      if list.nonEmpty then Some(key -> list.asJson) else None
-
-    Json.fromFields(
-      encNonEmpty("editors", interface.editors.toList) ++
-        encNonEmpty("sidebar", interface.sidebarWidgets) ++
-        encNonEmpty("controls", interface.controls.toList)
-    )
-
-  given datePickerClockTypeDec: Decoder[DatePicker.ClockType] = Decoder[String].emap(s =>
-    DatePicker.ClockType.parse(s).toRight(s"Invalid ${DatePicker.ClockType.Name} field setting: $s")
-  )
-
-  given datePickerFormatDec: Decoder[DatePicker.Format] =
-    Decoder[String].emap(s => DatePicker.Format.parse(s).toRight(s"Invalid ${DatePicker.Format.Name} field setting: $s"))
-
-  given controlDec: Decoder[FieldControl] = c =>
-    for
-      fieldId   <- c.get[String]("fieldId")
-      widgetId  <- c.get[String]("widgetId")
-      namespace <- c.get[String]("widgetNamespace")
-      control <- Control
-        .parse(namespace, widgetId)
-        .toRight(DecodingFailure(s"Invalid widget $widgetId in namespace $namespace for field $fieldId", Nil))
-      maybeSettings <- c
-        .get[Option[Map[String, Json]]]("settings")
-        .flatMap(_.traverse(_.toList.traverse { case (k, json) => parseFieldControlSetting(k, json) }))
-        .map(_.map(_.toSet))
-    yield FieldControl(fieldId, control, maybeSettings.getOrElse(Set.empty))
-
-  def parseFieldControlSetting(key: String, json: Json): Decoder.Result[FieldControlSetting] =
-    import FieldControlSetting.*
-    key match
-      case Boolean.TrueLabel.Name                  => json.as[String].map(Boolean.TrueLabel.apply)
-      case Boolean.FalseLabel.Name                 => json.as[String].map(Boolean.FalseLabel.apply)
-      case Rating.Stars.Name                       => json.as[Int].map(Rating.Stars.apply)
-      case DatePicker.Format.Name                  => json.as[DatePicker.Format]
-      case DatePicker.ClockType.Name               => json.as[DatePicker.ClockType]
-      case HelpText.Name                           => json.as[String].map(HelpText.apply)
-      case LinksEditor.BulkEditing.Name            => json.as[Boolean].map(LinksEditor.BulkEditing.apply)
-      case LinksEditor.ShowLinkEntityAction.Name   => json.as[Boolean].map(LinksEditor.ShowLinkEntityAction.apply)
-      case LinksEditor.ShowCreateEntityAction.Name => json.as[Boolean].map(LinksEditor.ShowCreateEntityAction.apply)
-      case name => Right(CustomSetting(name, json)) // assume any other setting is a custom setting.
-
-  given sidebarDec: Decoder[SidebarWidget] = c =>
-    for
-      widgetId  <- c.get[String]("widgetId")
-      namespace <- c.get[String]("widgetNamespace")
-      sidebar <- SidebarWidget
-        .parse(namespace, widgetId)
-        .toRight(DecodingFailure(s"Invalid sidebar widget $widgetId for namespace $namespace", Nil))
-    yield sidebar
-
-  given editorDec: Decoder[Editor] = c =>
-    for
-      widgetId  <- c.get[String]("widgetId")
-      namespace <- c.get[String]("widgetNamespace")
-      disabled  <- c.get[Option[Boolean]]("disabled")
-      editor <- Editor
-        .parse(namespace, widgetId, disabled.getOrElse(false))
-        .toRight(DecodingFailure(s"Invalid editor widget $widgetId for namespace $namespace", Nil))
-    yield editor
-
-  given interfaceDec: Decoder[EditorInterface] = c =>
-    val editorsCur  = c.downField("editors")
-    val sidebarCur  = c.downField("sidebar")
-    val controlsCur = c.downField("controls")
-    for
-      editors  <- if editorsCur.succeeded then editorsCur.as[Set[Editor]] else Right(Set.empty[Editor])
-      sidebars <- if sidebarCur.succeeded then sidebarCur.as[List[SidebarWidget]] else Right(Nil)
-      controls <-
-        if controlsCur.succeeded then
-          controlsCur.as[List[Json]].flatMap(_.flatTraverse(swallowFieldsWithoutWidget)).map(_.toSet)
-        else Right(Set.empty[FieldControl])
-    yield EditorInterface(editors, sidebars, controls)
-
-  /** Bit of a hack working around Contentful bug. Weird behaviour where only the fieldId is returned, no widget. This means
-    * it is the default widget for the field type. If declared from code it will be explicitly set.
-    */
-  def swallowFieldsWithoutWidget(json: Json): Decoder.Result[List[FieldControl]] =
-    json
-      .as[FieldControl]
-      .map(List(_))
-      .recoverWith[DecodingFailure, List[FieldControl]] { case err =>
-        json.hcursor
-          .get[String]("fieldId")
-          .fold(
-            fa = _ => Left(err),
-            fb = _ => Right(Nil)
-          )
-      }
-
-  given versionedInterfaceEnc: Encoder[VersionedEditorInterface] =
-    Encoder[EditorInterface].contramap(_.editorInterface)
-
-  given versionedInterfaceDec: Decoder[VersionedEditorInterface] = c =>
-    (
-      c.downField("sys").downField("version").as[Int],
-      c.downField("sys").downField("contentType").downField("sys").downField("id").as[ContentTypeId],
-      c.as[EditorInterface]
-    ).mapN(VersionedEditorInterface.apply)
