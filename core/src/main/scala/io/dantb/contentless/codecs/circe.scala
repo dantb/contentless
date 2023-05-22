@@ -17,7 +17,6 @@ import io.dantb.contentless.appearance.*
 import io.dantb.contentless.appearance.FieldControlSetting.*
 import io.dantb.contentless.codecs.EntryCodec
 import io.dantb.contentless.codecs.FieldCodec.DefaultZone
-import io.dantb.contentless.webhook.*
 
 object implicits:
   implicit def contentfulEntryEncoder[A](using codec: EntryCodec[A]): Encoder[Entry[A]] = value =>
@@ -343,57 +342,6 @@ object implicits:
         ).mapN(RichText.EntryHyperlink.apply)
     }
 
-  given contentTypeHeaderEncoder: Encoder[ContentTypeHeader] = Encoder[String].contramap(_.key)
-
-  given contentTypeHeaderDecoder: Decoder[ContentTypeHeader] =
-    Decoder[String].emap(s => ContentTypeHeader.parse(s).toRight(s"Invalid webhook content type $s"))
-
-  given methodEncoder: Encoder[Method] = Encoder[String].contramap(_.asString)
-
-  given methodDecoder: Decoder[Method] =
-    Decoder[String].emap(s => Method.parse(s).toRight(s"Invalid webhook method $s"))
-
-  given transformationEncoder: Encoder[Transformation] = t =>
-    def encodeOption[A: Encoder](key: String, opt: Option[A]): Iterable[(String, Json)] =
-      opt.map(v => key -> v.asJson).toIterable
-
-    Json.fromFields(
-      encodeOption("contentType", t.contentType) ++
-        encodeOption("body", t.body) ++
-        encodeOption("method", t.method) ++
-        encodeOption("includeContentLength", t.includeContentLength)
-    )
-
-  given transformationDecoder: Decoder[Transformation] = c =>
-    (
-      c.get[Option[Method]]("method"),
-      c.get[Option[ContentTypeHeader]]("contentType"),
-      c.get[Option[Boolean]]("includeContentLength"),
-      c.get[Option[Json]]("body")
-    ).mapN(Transformation.apply)
-
-  given webhookDefinitionEncoder: Encoder[WebhookDefinition] = req =>
-    obj(
-      "name"           -> req.name.asJson,
-      "url"            -> req.url.asJson,
-      "topics"         -> req.topics.asJson,
-      "filters"        -> req.filters.asJson,
-      "transformation" -> req.transformation.asJson,
-      "headers"        -> req.headers.asJson
-    )
-
-  given webhookDefinitionDecoder: Decoder[WebhookDefinition] = c =>
-    (
-      c.downField("sys").get[String]("id"),
-      c.get[String]("name"),
-      c.get[String]("url"),
-      c.get[List[WebhookTopic]]("topics"),
-      c.get[List[WebhookFilter]]("filters"),
-      c.get[List[WebhookHeader]]("headers"),
-      c.downField("sys").get[Option[Int]]("version"),
-      c.get[Option[Transformation]]("transformation").map(_.getOrElse(Transformation.empty))
-    ).mapN(WebhookDefinition.apply)
-
   implicit def fieldTypeEncoder[A <: FieldType]: Encoder[A] = {
     case t @ FieldType.Text(true, _, _, _, _) =>
       obj(
@@ -518,39 +466,6 @@ object implicits:
       c.get[Option[Map[String, Json]]]("defaultValue").map(_.getOrElse(Map.empty))
     ).mapN(Field.apply)
 
-  given webhookHeaderEncoder: Encoder[WebhookHeader] = header =>
-    obj(
-      "key"    -> header.key.asJson,
-      "value"  -> header.value.asJson,
-      "secret" -> header.secret.asJson
-    )
-
-  given webhookHeaderDecoder: Decoder[WebhookHeader] = c =>
-    (
-      c.get[String]("key"),
-      c.get[Option[String]]("value"),
-      c.get[Option[Boolean]]("secret").map(_.getOrElse(false))
-    ).mapN(WebhookHeader.apply)
-
-  given webhookTopicEncoder: Encoder[WebhookTopic] =
-    Encoder[String].contramap(topic => s"${topic.entityType.typeName}.${topic.event.eventName}")
-
-  given webhookTopicDecoder: Decoder[WebhookTopic] =
-    Decoder[String].emap { str =>
-      str.split('.') match
-        case Array(typeName, eventName) =>
-          (
-            WebhookEvent.fromString(eventName).toRight(s"Unknown event type: $eventName"),
-            EntityType.fromString(typeName).toRight(s"Unknown entity type: $typeName")
-          ).mapN(WebhookTopic.apply)
-        case _ => s"Invalid webhook topic: $str".asLeft
-    }
-
-  given propertyPathEncoder: Encoder[PropertyPath] = Encoder[String].contramap(_.asString)
-  given propertyPathDecoder: Decoder[PropertyPath] = Decoder[String].emap { str =>
-    PropertyPath.fromString(str).toRight(s"Unrecognized property path: $str")
-  }
-
   given referenceEncoder: Encoder[Reference] = ref =>
     obj("sys" -> obj("type" -> "Link".asJson, "linkType" -> "Entry".asJson, "id" -> ref.id.asJson))
 
@@ -566,65 +481,6 @@ object implicits:
     obj("sys" -> obj("type" -> "Link".asJson, "linkType" -> "Asset".asJson, "id" -> media.id.asJson))
 
   given mediaDecoder: Decoder[Media] = _.downField("sys").downField("id").as[String].map(Media.apply)
-
-  given webhookFilterEncoder: Encoder[WebhookFilter] = {
-    case WebhookFilter.Equals(property, operand) =>
-      obj(
-        "equals" -> Json.arr(
-          obj("doc" -> property.asJson),
-          operand.asJson
-        )
-      )
-    case WebhookFilter.Includes(property, operands) =>
-      obj(
-        "in" -> Json.arr(
-          obj("doc" -> property.asJson),
-          operands.asJson
-        )
-      )
-    case WebhookFilter.Regex(property, pattern) =>
-      obj(
-        "regexp" -> Json.arr(
-          obj("doc"     -> property.asJson),
-          obj("pattern" -> pattern.asJson)
-        )
-      )
-    case WebhookFilter.Not(inner) =>
-      obj(
-        "not" -> inner.asJson(webhookFilterEncoder)
-      )
-  }
-
-  given webhookFilterDecoder: Decoder[WebhookFilter] = c =>
-    val equals = c.downField("equals").success.map { eqCur =>
-      (
-        eqCur.downN(0).downField("doc").as[PropertyPath],
-        eqCur.downN(1).as[String]
-      ).mapN(WebhookFilter.Equals.apply)
-    }
-    val in = c.downField("in").success.map { inCur =>
-      (
-        inCur.downN(0).downField("doc").as[PropertyPath],
-        inCur.downN(1).as[List[String]]
-      ).mapN(WebhookFilter.Includes.apply)
-    }
-    val regex = c.downField("regexp").success.map { regexCur =>
-      (
-        regexCur.downN(0).downField("doc").as[PropertyPath],
-        regexCur.downN(1).downField("pattern").as[String]
-      ).mapN(WebhookFilter.Regex.apply)
-    }
-    val not =
-      c
-        .downField("not")
-        .success
-        .map(
-          _.as[WebhookFilter](webhookFilterDecoder)
-            .map(WebhookFilter.Not(_))
-        )
-
-    equals orElse in orElse regex orElse not getOrElse
-      DecodingFailure(s"Failed to match a webhook filter on $c", Nil).asLeft
 
   given contentTypeEncoder: Encoder[ContentType] = ct =>
     obj(
