@@ -39,7 +39,7 @@ class CirceSpec extends ScalaCheckSuite:
 
 object CirceSpec:
 
-  val All = List(
+  def All = List(
     LongText,
     ShortText,
     ShortTextDefaulted,
