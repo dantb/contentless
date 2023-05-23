@@ -12,44 +12,12 @@ import io.dantb.contentless.instances.given
 
 import scala.util.matching.Regex
 
-/** One of the core entities in Contentful - represents the core information for a [[ContentType]].
-  *
-  * While they CAN be omitted (set to None), we recommend adding human-friendly description of the type's purpose in life,
-  * as well as a `displayField`, which informs contentful which field from the model should be used for display in lists,
-  * searches, references, etc.
-  *
-  * See the Contentful-Docs for a bit more detail, if you wish.
-  *
-  * [[https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types/content-type]]
-  */
-trait ContentModel[A]:
-
-  /** The primary identifier in Contentful for this Content Model */
-  def contentType: ContentTypeId
-
-  /** The Human-Friendly name for this Content Model */
-  def contentTypeName: String
-
-  /** The field from the Model that will be used for displaying instances of this Content Model within contentful */
-  def displayField: Option[String]
-
-  /** The Human-Friendly description with the raison d'être of for instances of this Content Model */
-  def description: Option[String]
-
-  def codec: EntryCodec[A]
-
-object ContentModel:
-  def apply[A](using contentModel: ContentModel[A]): ContentModel[A] = contentModel
-
 /** The ID of the content type. Must be unique (within each environment) */
 final case class ContentTypeId(asString: String) extends AnyVal
 
 object ContentTypeId:
   given eq: Eq[ContentTypeId]     = Eq.by(_.asString)
   given show: Show[ContentTypeId] = _.asString
-
-  def of[A: ContentModel]: ContentTypeId =
-    ContentModel[A].contentType
 
 final case class Reference(id: String) extends AnyVal
 
