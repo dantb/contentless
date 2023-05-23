@@ -76,7 +76,7 @@ textList(
   "tags", 
   "Tags", 
   defaultValue = Some(List(Tag.Technology.slug)),
-  arrayBounds = Some(Size(min = Some(1), max = Some(3), message = Some("Please select 1-3 tags")))
+  arrayBounds = Size.range(min = 1, max = 3, "Please select 1-3 tags").some
 ).required
 ```
 
