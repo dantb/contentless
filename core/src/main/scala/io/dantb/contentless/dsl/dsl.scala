@@ -23,12 +23,37 @@ trait dsl extends Dsl
 
 object dsl extends dsl:
 
+  final case class ContentModel(
+      types: List[ContentType[?]]
+  )
+
+  final case class ContentTpe(
+      id: ContentTypeId,
+      displayName: String,
+      displayField: Option[String],
+      description: Option[String],
+      fields: List[Field]
+  )
+
+  object ContentModel:
+    def of(contentTypes: ContentType[?]*): ContentModel =
+      ContentModel(
+        contentTypes.toList
+          // .map { contentType =>
+          //   import contentType.*
+          //   ContentTpe(id, displayName, displayField, description, codec.schema)
+          // }
+      )
+
   trait ContentType[A]:
     def id: ContentTypeId
     def displayName: String
     def displayField: Option[String]
     def description: Option[String]
     def codec: EntryCodec[A]
+
+  object ContentType:
+    def apply[A](using ct: ContentType[A]) = ct
 
   def contentType[A](
       id0: ContentTypeId,
