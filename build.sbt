@@ -58,8 +58,11 @@ lazy val graphql = project
       "edu.gemini"    %% "gsp-graphql-core"    % Grackle,
       "org.typelevel" %% "literally"           % Literally,
       "org.http4s"    %% "http4s-client"       % Http4s,
+      "org.http4s"    %% "http4s-ember-client" % Http4s,
       "org.http4s"    %% "http4s-circe"        % Http4s,
-      "org.typelevel" %% "munit-cats-effect-3" % MUnitCE % Test
+      "org.typelevel" %% "munit-cats-effect-3" % MUnitCE % Test,
+      "org.scalameta" %% "munit"               % MUnit   % Test,
+      "org.scalameta" %% "munit-scalacheck"    % MUnit   % Test
     )
   )
   .dependsOn(core)

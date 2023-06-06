@@ -26,15 +26,18 @@ import io.dantb.contentless.FieldType as FT
 import io.dantb.contentless.FieldType.*
 import io.dantb.contentless.dsl.*
 
+def singleEntryQueryString[A: ContentType](id: String, model: ContentModel): GenerationResult[String] =
+  singleEntryDoc(id, model).map(QueryMinimizer.minimizeDocument)
+
 // TODO
 // - functions to omit particular fields and include only specified fields.
 // - function for one entry using a provided / derived decoder
 // - function for all entries using provided / derived decoder
-def generateQueryString[A: ContentType](
-    model: ContentModel
-): GenerationResult[String] = generateDocument(model).map(QueryMinimizer.minimizeDocument)
+def contentTypeQueryString[A: ContentType](
+    model: ContentModel = ContentModel.Empty
+): GenerationResult[String] = contentTypeDoc(model).map(QueryMinimizer.minimizeDocument)
 
-def generateDocument[A: ContentType](
+def contentTypeDoc[A: ContentType](
     model: ContentModel
 ): GenerationResult[Document] = generateDocumentWithArgs(model, CollectionArguments.Default)
 
@@ -58,6 +61,27 @@ def generateDocumentWithArgs[A: ContentType](
             ),
             Nil,
             List(field("items")(fields*))
+          )
+        )
+      )
+    )
+  }
+
+def singleEntryDoc[A: ContentType](
+    id: String,
+    model: ContentModel
+): GenerationResult[Document] =
+  codecFieldsSubqueries(model).map { ss =>
+    val fields: List[Selection.Field] = sysField :: ss
+    List(
+      OperationDefinition.QueryShorthand(
+        List(
+          Selection.Field(
+            None,
+            Name(s"${ContentType[A].id.asString}"),
+            List(Name("id") -> Value.StringValue(id)),
+            Nil,
+            fields
           )
         )
       )

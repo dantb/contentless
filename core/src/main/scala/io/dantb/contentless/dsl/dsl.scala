@@ -36,14 +36,9 @@ object dsl extends dsl:
   )
 
   object ContentModel:
+    val Empty = ContentModel(Nil)
     def of(contentTypes: ContentType[?]*): ContentModel =
-      ContentModel(
-        contentTypes.toList
-          // .map { contentType =>
-          //   import contentType.*
-          //   ContentTpe(id, displayName, displayField, description, codec.schema)
-          // }
-      )
+      ContentModel(contentTypes.toList)
 
   trait ContentType[A]:
     def id: ContentTypeId

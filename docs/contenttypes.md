@@ -25,8 +25,7 @@ enum Tag(val slug: String):
   case Science    extends Tag("science")
   case Technology extends Tag("technology")
 
-def allTags                             = Set(Tag.Sport, Tag.Politics, Tag.Science, Tag.Technology)
-def parseTag(slug: String): Option[Tag] = allTags.find(_.slug == slug)
+def parseTag(slug: String): Option[Tag] = Tag.values.find(_.slug == slug)
 
 final case class Author(name: String, image: Media, bio: Option[String])
 object Author:
