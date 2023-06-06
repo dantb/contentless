@@ -1,3 +1,19 @@
+/*
+ * Copyright 2023 Daniel Tattan-Birch
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.dantb.contentless.graphql
 
 import cats.parse.Parser
@@ -10,15 +26,18 @@ import io.dantb.contentless.FieldType as FT
 import io.dantb.contentless.FieldType.*
 import io.dantb.contentless.dsl.*
 
+def singleEntryQueryString[A: ContentType](id: String, model: ContentModel): GenerationResult[String] =
+  singleEntryDoc(id, model).map(QueryMinimizer.minimizeDocument)
+
 // TODO
 // - functions to omit particular fields and include only specified fields.
 // - function for one entry using a provided / derived decoder
 // - function for all entries using provided / derived decoder
-def generateQueryString[A: ContentType](
-    model: ContentModel
-): GenerationResult[String] = generateDocument(model).map(QueryMinimizer.minimizeDocument)
+def contentTypeQueryString[A: ContentType](
+    model: ContentModel = ContentModel.Empty
+): GenerationResult[String] = contentTypeDoc(model).map(QueryMinimizer.minimizeDocument)
 
-def generateDocument[A: ContentType](
+def contentTypeDoc[A: ContentType](
     model: ContentModel
 ): GenerationResult[Document] = generateDocumentWithArgs(model, CollectionArguments.Default)
 
@@ -42,6 +61,27 @@ def generateDocumentWithArgs[A: ContentType](
             ),
             Nil,
             List(field("items")(fields*))
+          )
+        )
+      )
+    )
+  }
+
+def singleEntryDoc[A: ContentType](
+    id: String,
+    model: ContentModel
+): GenerationResult[Document] =
+  codecFieldsSubqueries(model).map { ss =>
+    val fields: List[Selection.Field] = sysField :: ss
+    List(
+      OperationDefinition.QueryShorthand(
+        List(
+          Selection.Field(
+            None,
+            Name(s"${ContentType[A].id.asString}"),
+            List(Name("id") -> Value.StringValue(id)),
+            Nil,
+            fields
           )
         )
       )
