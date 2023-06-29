@@ -53,7 +53,7 @@ object GraphQLContentAPI:
   def mk[F[_]: Concurrent: StructuredLogger](client: Client[F], conf: Config): GraphQLContentAPI[F] =
     new GraphQLContentAPI[F]:
 
-      val ContentfulUrl = uri"https://graphql.contentful.com/content/v1" / "spaces" / conf.space / "environments" / conf.env
+      val ContentfulUrl = uri"https://graphql.contentful.com/content/v1/spaces" / conf.space / "environments" / conf.env
 
       final case class Entries[A](items: List[A])
       given strict[A: Decoder: ContentType]: Decoder[Entries[A]] =

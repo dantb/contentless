@@ -17,16 +17,18 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / tlSitePublishBranch := Some("main")
 
 // val Scala213 = "2.13.10"
-val Scala3 = "3.2.2"
+val Scala3 = "3.3.0"
 ThisBuild / scalaVersion := Scala3 // the default Scala
 
 val Cats       = "2.9.0"
 val CatsEffect = "3.4.10"
 val Circe      = "0.14.3"
-val Grackle    = "0.12.0"
+val Ciris      = "3.2.0"
+val Grackle    = "0.13.0"
 val Http4s     = "0.23.13"
 val Jawn       = "1.3.2"
 val Literally  = "1.1.0"
+val Log4Cats   = "2.6.0"
 val MUnit      = "0.7.29"
 val MUnitCE    = "1.0.7"
 val NewTypes   = "0.2.3"
@@ -60,6 +62,8 @@ lazy val graphql = project
       "org.http4s"    %% "http4s-client"       % Http4s,
       "org.http4s"    %% "http4s-ember-client" % Http4s,
       "org.http4s"    %% "http4s-circe"        % Http4s,
+      "is.cir"        %% "ciris"               % Ciris % Test,
+      "org.typelevel" %% "log4cats-noop"       % Log4Cats % Test,
       "org.typelevel" %% "munit-cats-effect-3" % MUnitCE % Test,
       "org.scalameta" %% "munit"               % MUnit   % Test,
       "org.scalameta" %% "munit-scalacheck"    % MUnit   % Test
